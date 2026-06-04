@@ -1,0 +1,16 @@
+{
+  "name": "harness-marketplace",
+  "owner": {
+    "name": "revfactory",
+    "email": "revfactory@gmail.com",
+    "url": "https://github.com/revfactory"
+  },
+  "plugins": [
+    {
+      "name": "harness",
+      "source": "./",
+      "description": "Agent team & skill architect. A meta skill that configures harnesses for your domain/project, defines specialist agents, and generates skills for agents to use.",
+      "version": "1.2.0"
+    }
+  ]
+}
