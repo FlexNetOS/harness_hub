@@ -1,0 +1,44 @@
+{
+  "schema": "./registry.schema.json",
+  "version": "0.1.0",
+  "updated": "2026-06-04",
+  "org": "FlexNetOS",
+  "hub": "harness_hub",
+  "description": "Catalog of agent harnesses — coding-agent runtimes, harness toolkits, and orchestration frameworks used across the FlexNetOS meta workspace.",
+  "harnesses": [
+    {
+      "id": "oh-my-pi",
+      "displayName": "oh-my-pi (omp)",
+      "category": "agent-runtime",
+      "status": "stable",
+      "summary": "A standalone coding agent with the IDE wired in — a TypeScript/Rust/Bun monorepo (omp) with its own TUI, swarm-extension, and agent/ai packages. Not a Claude Code plugin; a coding-agent harness of its own.",
+      "tags": ["coding-agent", "harness", "ide", "tui"],
+      "runtime": "multi",
+      "homepage": "https://omp.sh",
+      "license": "MIT",
+      "forked": true,
+      "upstream": "https://github.com/can1357/oh-my-pi",
+      "hosting": "peer",
+      "workspaceMember": "oh-my-pi",
+      "repo": "git@github.com:FlexNetOS/oh-my-pi.git",
+      "doc": "entries/oh-my-pi.md",
+      "snippet": "snippets/oh-my-pi.sh"
+    },
+    {
+      "id": "harness",
+      "displayName": "harness (toolkit)",
+      "category": "harness-toolkit",
+      "status": "beta",
+      "summary": "The harness toolkit/landing vendored in this repo at harness/ (skills, docs, site). Source of the `harness` meta-skill that defines specialized agents and the skills they use.",
+      "tags": ["harness", "skills", "vendored"],
+      "runtime": "node",
+      "homepage": "https://github.com/FlexNetOS/harness",
+      "forked": true,
+      "upstream": "https://github.com/FlexNetOS/harness",
+      "hosting": "registry-only",
+      "path": "harness",
+      "doc": "entries/harness.md",
+      "notes": "Vendored in-repo at harness/ (nested .git stripped). Not a nested-meta child; lives directly in harness_hub's tree."
+    }
+  ]
+}

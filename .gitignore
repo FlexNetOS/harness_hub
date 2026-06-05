@@ -1,0 +1,4 @@
+# OS / editor scratch
+.DS_Store
+.claude/
+# Nested-meta child clones are added here lazily (keep in sync with .meta.yaml)
