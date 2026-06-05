@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/FlexNetOS/harness_hub/registry.schema.json",
+  "title": "harness_hub registry",
+  "description": "Catalog of agent harnesses. registry.json is the source of truth; scripts/validate.py enforces it. See template_hub/docs/hub-standard.md.",
+  "type": "object",
+  "required": ["version", "updated", "org", "hub", "harnesses"],
+  "properties": {
+    "schema": { "type": "string" },
+    "version": { "type": "string" },
+    "updated": { "type": "string" },
+    "org": { "type": "string" },
+    "hub": { "const": "harness_hub" },
+    "description": { "type": "string" },
+    "harnesses": { "type": "array", "items": { "$ref": "#/$defs/harness" } }
+  },
+  "$defs": {
+    "harness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "displayName", "category", "status", "summary", "doc"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+        "displayName": { "type": "string" },
+        "category": { "enum": ["agent-runtime", "harness-toolkit", "skills-framework", "orchestrator"] },
+        "status": { "enum": ["stable", "beta", "experimental", "deprecated"] },
+        "summary": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "runtime": { "enum": ["node", "rust", "bun", "python", "multi"], "description": "Primary runtime/stack." },
+        "homepage": { "type": "string" },
+        "license": { "type": "string" },
+        "forked": { "type": "boolean" },
+        "upstream": { "type": "string" },
+        "hosting": { "enum": ["peer", "registry-only"], "description": "peer = first-party workspace member; registry-only = pointer or vendored-in-repo content." },
+        "repo": { "type": "string" },
+        "workspaceMember": { "type": "string" },
+        "path": { "type": "string", "description": "In-repo directory for vendored content (e.g. harness/)." },
+        "doc": { "type": "string" },
+        "snippet": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}
