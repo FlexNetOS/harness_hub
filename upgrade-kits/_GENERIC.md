@@ -1,4 +1,4 @@
-# Harness Upgrade Kit — autonomous, resumable, self-restarting operation
+# Harness Upgrade Kit v2 — autonomous, resumable, self-restarting operation
 
 Hand this whole file to a session working in another repo. It tells that session how to
 upgrade *its* repo's harness to the same pattern proven in `envctl`: a **Ralph loop** that
@@ -7,6 +7,14 @@ cycle budget, and can run **fully unattended** by self-restarting with a clean c
 cycle. Truth lives on disk (backlog + checkpoints + commits), so any restart resumes cold
 with **zero loss**.
 
+> **v2 (2026-06-12, ADR-0004):** durable loop state moved from `_workspace/` to
+> **`.handoff/loop/`** — `_workspace/` is a deprecated rival convention (policy P7.36).
+> When the meta workspace kernel is reachable, the file protocol below is the *fallback*:
+> prefer **minted cards** over `backlog.md` (`hf task mint`), **witnessed checkpoints**
+> over ledger prose (`hf checkpoint`), and **rendered packets** over hand-written
+> `HANDOFF.md` (`hf handoff`). Existing `_workspace/` dirs keep their history — migrate
+> opportunistically, never bulk-delete.
+
 It is repo-agnostic. Replace every `<…>` placeholder with your repo's specifics.
 
 ---
@@ -14,10 +22,12 @@ It is repo-agnostic. Replace every `<…>` placeholder with your repo's specific
 ## 0) Paste-this prompt (give this to the target session verbatim)
 
 > Upgrade this repo's harness to the autonomous-operation pattern in
-> `~/Desktop/meta/HARNESS-UPGRADE-KIT.md`. Read that file, then, **in a fresh git worktree**
-> (never on dirty `master`), create the deliverables in §3 adapted to THIS repo: a durable
-> `_workspace/` state dir, a loop skill, a `session-relay` skill, a `continuity-steward`
-> agent, a `/<loop> resume` slash command, and the external `/new` runner script. Match the
+> `~/Desktop/meta/HARNESS-UPGRADE-KIT.md` (v2). Read that file, then, **in a fresh git
+> worktree** (never on dirty `master`), create the deliverables in §3 adapted to THIS repo:
+> a durable `.handoff/loop/` state dir, a loop skill, a `session-relay` skill, a
+> `continuity-steward` agent, a `/<loop> resume` slash command, and the external `/new`
+> runner script. If this repo lives in the meta workspace, wire backlog/checkpoint/handoff
+> to the `hf` kernel verbs first and use the file protocol only as fallback. Match the
 > acceptance targets in §4. Keep the harness hand-authored and git-tracked. Don't invent a
 > CLI you don't have — wire the loop to whatever commands actually drive your repo. Report
 > back with the file list + one happy-path and one error-path dry run.
@@ -42,13 +52,16 @@ checkpoint to the next. Two layers:
 ## 2) Non-negotiable principles
 
 1. **Write state down every cycle.** Never hold the plan only in context.
-2. **Durable state on disk** under `_workspace/` (backlog + ledger + checkpoint).
+2. **Durable state on disk** under `.handoff/loop/` (backlog + ledger + checkpoint) —
+   git-committed **text only**; binary state never enters git (the beads lesson). The
+   witnessed event ledger stays central (`handoff/.handoff/ledger.db`), not per-repo.
 3. **One item per cycle; commit per cycle** (area-prefixed subject). A fresh process must be
    able to resume from committed state alone.
-4. **The committed `HANDOFF.md` is the authoritative resume signal** — *not* the weave inbox.
-   (Verified gotcha: a message addressed to your own identity does **not** land in your own
-   inbox, and a same-machine successor inherits the same identity. weave is an *observable
-   heartbeat* via `to:"all"`, not the payload.)
+4. **The committed `.handoff/loop/HANDOFF.md` is the authoritative resume signal** — *not*
+   the weave inbox. (Verified gotcha: a message addressed to your own identity does **not**
+   land in your own inbox, and a same-machine successor inherits the same identity. weave is
+   an *observable heartbeat* via `to:"all"`, not the payload.) With kernel access, `hf
+   handoff` + `hf resume` replace the file as the packet of record.
 5. **Fail-closed.** Destructive/irreversible ops are **dry-run first + opt-in**; never weaken
    a guard to make a step pass.
 6. **Human walls STOP the loop** (sudo / interactive auth / reboot / hardware you can't drive)
@@ -58,12 +71,16 @@ checkpoint to the next. Two layers:
 
 ## 3) Deliverables (create these in YOUR repo)
 
-**A. Durable state — `_workspace/`**
-- `backlog.md` — the single source of truth. Ordered checklist, one item per gap.
-  Legend: `- [ ]` todo · `- [x]` done+verified · `- [!] blocked: <reason>`.
-- `loop_state.md` — the ledger (schema in §5).
+**A. Durable state — `.handoff/loop/`**
+- `backlog.md` — the single source of truth *when the kernel is unreachable*. Ordered
+  checklist, one item per gap. Legend: `- [ ]` todo · `- [x]` done+verified ·
+  `- [!] blocked: <reason>`. **Kernel available → backlog = minted cards**
+  (`hf task mint --from-kb <slug>`; status via `hf status`).
+- `loop_state.md` — the cycle ledger (schema in §5).
 - At runtime: `HANDOFF.md` and the sentinels (§6). `.gitignore` the per-run `*.log` files;
   **commit** `backlog.md` + `loop_state.md` + `HANDOFF.md` every cycle.
+- Your repo's `.handoff/context/capsule.json` (seeded by the P7 rollout) should keep its
+  `next_command` pointing at the loop's resume entry point.
 
 **B. Loop skill — `.claude/skills/<loop>/SKILL.md`**
 The in-session body:
@@ -78,12 +95,13 @@ The in-session body:
 
 **C. `session-relay` skill — `.claude/skills/session-relay/SKILL.md`**
 Two entry points (full protocol in §7):
-- **HAND OFF:** spawn `continuity-steward` → write+**commit** `HANDOFF.md` → weave heartbeat
+- **HAND OFF:** spawn `continuity-steward` → write+**commit** `.handoff/loop/HANDOFF.md`
+  (kernel available: `hf checkpoint <ID> "<note>"` + `hf handoff` instead) → weave heartbeat
   `to:"all"` (`relay:handoff`) → best-effort one-shot cron successor whose prompt self-describes
   the resume → stop.
-- **RESUME:** read the committed `HANDOFF.md` (authoritative) → run its verify-on-resume
-  baseline → broadcast `relay:resumed` → reset `cycles_this_session=0` → continue at the
-  backlog's current item.
+- **RESUME:** read the committed `HANDOFF.md` / `hf resume` packet (authoritative) → run its
+  verify-on-resume baseline → broadcast `relay:resumed` → reset `cycles_this_session=0` →
+  continue at the backlog's current item.
 
 **D. `continuity-steward` agent — `.claude/agents/continuity-steward.md`**
 A general-purpose agent that writes the cold-start `HANDOFF.md` (state + pointers, not
@@ -92,29 +110,30 @@ session commits, open findings, decisions/dead-ends, and **Verify-on-resume** co
 Offloading this keeps the orchestrator's context lean.
 
 **E. Resume slash command** (so a new session picks up where the last left off)
-Wire `/<loop> resume from _workspace/HANDOFF.md` to enter the loop in RESUME mode. The skill's
-description must trigger on "resume", "pick up the loop", "continue in a new session".
+Wire `/<loop> resume from .handoff/loop/HANDOFF.md` to enter the loop in RESUME mode. The
+skill's description must trigger on "resume", "pick up the loop", "continue in a new session".
 
 **F. The `/new` upgrade — external runner `.claude/skills/<loop>/scripts/ralph-<x>.sh`**
 A bounded `while` loop that each iteration: checks sentinels → spawns one fresh
 `claude -p "<resume prompt>"` (clean context) → reads the one sentinel it wrote → respawns or
 exits. Safe by default; `*_APPLY=1` opts into `--dangerously-skip-permissions`; `MAX_ITERS`
-backstop; `touch _workspace/STOP` kills it. Skeleton in §8.
+backstop; `touch .handoff/loop/STOP` kills it. Skeleton in §8.
 
 ## 4) Acceptance targets (prove these)
 
 - **Backlog is the only source of truth**; every cycle commits; nothing lives only in context.
-- **Cold resume works:** a fresh session given *only* the committed `HANDOFF.md` resumes and
-  continues at the correct item (verify-on-resume baseline passes first).
+- **Cold resume works:** a fresh session given *only* the committed
+  `.handoff/loop/HANDOFF.md` (or `hf resume` packet) resumes and continues at the correct
+  item (verify-on-resume baseline passes first).
 - **Self-restart works:** the external runner spawns fresh-context agents and terminates
   **exactly** on `DONE` / `NEEDS-HUMAN` / `STOP` (never spins past `MAX_ITERS`).
 - **Fail-closed:** destructive ops dry-run first, need explicit opt-in, guards never weakened;
   a human wall yields `NEEDS-HUMAN`, not a forced action or a false "green".
 - **DONE only with evidence:** terminal `DONE` is written only when `<your full verify suite>`
-  all pass, and the evidence is recorded in `_workspace/DONE`.
+  all pass, and the evidence is recorded in `.handoff/loop/DONE`.
 - **Honest reporting:** blocked items surfaced with reasons; no claiming green you can't prove.
 
-## 5) Template — `_workspace/loop_state.md`
+## 5) Template — `.handoff/loop/loop_state.md`
 
 ```markdown
 # Loop state — <loop>
@@ -132,8 +151,8 @@ last_update: <UTC>
 
 ## 6) Sentinel contract (the runner reads exactly one per process)
 
-| Sentinel (`_workspace/…`) | Meaning | Runner action |
-|---------------------------|---------|---------------|
+| Sentinel (`.handoff/loop/…`) | Meaning | Runner action |
+|------------------------------|---------|---------------|
 | `HANDOFF.md` | more work remains | spawn the next fresh process |
 | `DONE`       | finished + verified (evidence inside) | exit 0 |
 | `NEEDS-HUMAN`| sudo / reboot / interactive / hardware wall (reason inside) | halt for human |
@@ -141,7 +160,9 @@ last_update: <UTC>
 
 ## 7) `session-relay` protocol (the durable bits, verified)
 
-- **Checkpoint** `_workspace/HANDOFF.md` (by `continuity-steward`) is the real payload; commit it.
+- **Checkpoint** `.handoff/loop/HANDOFF.md` (by `continuity-steward`) is the real payload;
+  commit it. Kernel reachable → `hf checkpoint` + `hf handoff` are the witnessed equivalents
+  and take precedence (state order: Git > ledger > cards > prose).
 - **weave** is the **cross-identity** heartbeat: broadcast `to:"all"` (`relay:handoff` /
   `relay:resumed`). Do **not** rely on your own inbox for a same-identity handoff — a
   self-addressed message isn't there.
@@ -161,7 +182,7 @@ last_update: <UTC>
 set -euo pipefail
 WORKTREE="${RALPH_WORKTREE:-$(pwd)}"; BUDGET="${RALPH_BUDGET:-3}"
 MAX_ITERS="${RALPH_MAX_ITERS:-50}"; SLEEP_BETWEEN="${RALPH_SLEEP:-5}"; MODEL="${RALPH_MODEL:-opus}"
-WS="$WORKTREE/_workspace"; mkdir -p "$WS"
+WS="$WORKTREE/.handoff/loop"; mkdir -p "$WS"
 log(){ printf '[ralph %s] %s\n' "$(date -u +%H:%M:%S)" "$*" >&2; }
 command -v claude >/dev/null || { log "FATAL: claude not on PATH"; exit 1; }
 
@@ -172,11 +193,12 @@ else log "SAFE mode (default): destructive applies refused. Set RALPH_APPLY=1 to
 
 read -r -d '' PROMPT <<EOF || true
 /<loop> resume (external Ralph runner, fresh context). Worktree: $WORKTREE.
-1. If _workspace/HANDOFF.md exists, follow session-relay RESUME from it (authoritative signal);
-   else DISCOVER and build _workspace/backlog.md.
+1. If .handoff/loop/HANDOFF.md exists, follow session-relay RESUME from it (authoritative
+   signal); else DISCOVER and build .handoff/loop/backlog.md (or mint cards via hf when the
+   kernel is reachable).
 2. Run up to $BUDGET cycles: one item each, dry-run -> apply for destructive steps, VERIFY across
    the boundary in a FRESH shell, commit per cycle. Fail-closed; never weaken a guard.
-3. Then write EXACTLY ONE sentinel under _workspace/ and stop (do not ScheduleWakeup):
+3. Then write EXACTLY ONE sentinel under .handoff/loop/ and stop (do not ScheduleWakeup):
    DONE (with evidence) | NEEDS-HUMAN (reason) | else HANDOFF.md (spawn continuity-steward).
 EOF
 
@@ -200,7 +222,7 @@ Launch:
 ```bash
 bash .claude/skills/<loop>/scripts/ralph-<x>.sh                 # SAFE: dry/plan, commits non-destructive progress
 RALPH_APPLY=1 bash .claude/skills/<loop>/scripts/ralph-<x>.sh   # UNATTENDED APPLY: opt in deliberately
-touch _workspace/STOP                                           # kill switch, any time
+touch .handoff/loop/STOP                                        # kill switch, any time
 ```
 
 ## 9) Placement & adaptation notes
@@ -208,6 +230,10 @@ touch _workspace/STOP                                           # kill switch, a
 - Keep the harness **hand-authored and git-tracked** (agents in `.claude/agents/*.md`, skills in
   `.claude/skills/*`). If your repo generates `.claude/` from a provisioning tool (kasetto-style),
   carve out the harness as a deliberate, documented exception so it isn't overwritten.
+- **Kernel-first when you have it:** repos inside the meta workspace reach the handoff kernel
+  at `handoff/target/{release,debug}/hf`. Backlog → minted cards; per-cycle checkpoint →
+  `hf checkpoint <ID> "<note>"` (witnessed); relay packet → `hf handoff`. The file protocol in
+  §§5–8 is the *standalone/offline* fallback and the bridge for repos cloned outside meta.
 - **Wire the loop to your repo's real commands** — don't invent a CLI. The envctl version drives
   `doctor`/`auto-detect`/`install`/`lock`/CI gates; yours drives whatever proves your work
   (tests, build, lint, deploy check, migration verify…). The *shape* transfers; the verbs don't.
@@ -215,8 +241,12 @@ touch _workspace/STOP                                           # kill switch, a
   honestly instead of looping or lying.
 - Record a short **change history** table in your repo's CLAUDE.md (date | change | target | reason)
   as you evolve the harness — the envctl one does this and it pays off.
+- Migrating from v1: leave existing `_workspace/` content in place (history); point the capsule
+  at the new `.handoff/loop/` and start writing new state there. Per-repo kits in
+  `harness_hub/upgrade-kits/` carry the same retarget note.
 
 ---
 
 *Source pattern: `envctl` harness — skills `forge-loop` / `env-install-loop` / `session-relay` /
-`auto-provision`, agent `continuity-steward`, runner `auto-provision/scripts/ralph-provision.sh`.*
+`auto-provision`, agent `continuity-steward`, runner `auto-provision/scripts/ralph-provision.sh`.
+v2 retarget: ADR-0004 / policy P7.36 (2026-06-12).*

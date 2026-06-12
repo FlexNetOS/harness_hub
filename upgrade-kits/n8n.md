@@ -1,3 +1,9 @@
+> **v2 retarget (2026-06-12, ADR-0004 / policy P7.36):** `_workspace/` is deprecated for NEW
+> state — durable loop state now lives in **`.handoff/loop/`**, and when the meta workspace
+> kernel is reachable, backlog/checkpoints/relay use `hf` verbs (`mint` / `checkpoint` /
+> `handoff`) instead of files. Existing `_workspace/` content keeps its history; migrate
+> opportunistically, never bulk-delete. Full protocol: `_GENERIC.md` (v2).
+
 # Harness Upgrade — n8n (tailoring sheet)
 
 Follow the generic kit: `~/Desktop/meta/HARNESS-UPGRADE-KIT.md` (or `./_GENERIC.md`).
