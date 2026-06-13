@@ -33,7 +33,7 @@ it will be silently dropped; your job is to make that impossible.
    source symbol** (exported/public fn, type, method, field, const, enum variant, trait, CLI flag,
    HTTP route), each `unit:`-tagged to its ledger row, same status legend (schema:
    `rust-port/references/symbol-map.md`). Harvest the symbol set **deterministically from the
-   AST/index, never grep** — `git kb index <source_root>` then
+   AST/index, never grep** — `git kb code index <source_root>` then
    `git kb code symbols --file <f> --json --limit -1` (no cap; JSON is the stable shape); routes/CLI
    flags come from the route table / CLI definition. Apply the row-eligible visibility filter to both
    the map and the denominator (record it in `reports/inventory.md`). This is what makes a dropped
