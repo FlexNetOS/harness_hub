@@ -1,6 +1,6 @@
 {
   "schema": "./registry.schema.json",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "updated": "2026-06-13",
   "org": "FlexNetOS",
   "hub": "harness_hub",
@@ -111,6 +111,27 @@
       "repo": "git@github.com:FlexNetOS/weave.git",
       "workspaceMember": "weave",
       "doc": "entries/weave.md"
+    },
+    {
+      "id": "rust-port",
+      "displayName": "rust-port (full-parity Rust port loop)",
+      "category": "orchestrator",
+      "status": "beta",
+      "summary": "Packaged harness (/harness:rust-port): an autonomous, resumable Ralph loop that performs a full-feature, NO-DOWNGRADE port of a source project (TypeScript/Python/...) to idiomatic Rust. A parity ledger inventories every source unit; each is ported fully (no stubs), then differentially parity-verified (source vs Rust) before it counts as done. DONE only at 100% with a left-behind sweep — no feature logic left behind.",
+      "tags": [
+        "rust",
+        "port",
+        "migration",
+        "parity",
+        "no-downgrade",
+        "packaged",
+        "ralph-loop"
+      ],
+      "runtime": "multi",
+      "hosting": "registry-only",
+      "path": "harness/skills/rust-port",
+      "notes": "Packaged harness in the harness plugin (harness/skills/rust-port + rust-port-* sub-skills + shared agents/). Invoke /harness:rust-port; ejectable via skills/rust-port/scripts/eject.sh. Flagship use case: full-feature TS->Rust port of meta/Archon.",
+      "doc": "entries/rust-port.md"
     }
   ]
 }

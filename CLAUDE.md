@@ -23,6 +23,11 @@ or "resume/continue/re-run the loop" tasks, use `/harness:meta-plugin` (or `/met
 ejected). Simple one-off questions may be answered directly. To add a *new* packaged harness, use
 `/harness:harness` and follow the packaged-harness standard.
 
+**Harness: rust-port (`/harness:rust-port`)** — a full-feature, **no-downgrade** Rust-port loop. A
+parity ledger inventories every source unit; each is ported fully (no stubs) then differentially
+parity-verified (source vs Rust) before it counts as done; `DONE` only at 100% + a left-behind sweep.
+**Trigger:** "port \<project\> to Rust", "rust port", "full-parity port", "resume the port".
+
 **Continuity:** committed `.handoff/loop/HANDOFF.md` is the authoritative cold-resume signal; weave is
 only an observable heartbeat. The external runner
 (`harness/skills/meta-plugin/scripts/ralph-meta-plugin.sh`) is **SAFE by default** — it does not
@@ -34,3 +39,5 @@ bypass the permission system; unattended apply is a deliberate, settings-authori
 | 2026-06-13 | Initial build: repo-org-loop harness — 5 agents, 5 skills, external SAFE runner | `.claude/` (repo-local) | Requested: loop workflow automating organization + combined processes via the 4 coordination repos |
 | 2026-06-13 | Port catalog validator Python→Rust (`hub-validate` crate + `validate.sh`); rewire CI/README/schema; delete `validate.py` | `scripts/`, CI, README, schema | Owner constraint: Rust-native only, no Python |
 | 2026-06-13 | Promote repo-org-loop into the `harness` plugin as packaged harness `/harness:meta-plugin`; shared agent pool; ejectable; catalog row; plugin v1.2.0→1.3.0; establish `docs/packaged-harness-standard.md` | `harness/agents/`, `harness/skills/`, `registry.json`, `entries/`, `docs/` | Owner vision: harness_hub = library of per-use-case packaged harnesses exposed as `/harness:<name>` |
+| 2026-06-13 | Rust-native `register` subcommand + `scripts/register.sh` (inverse of eject); cataloged `handoff` + `weave` as peers | `scripts/`, `registry.json`, `entries/` | Repeatable one-command harness registration |
+| 2026-06-13 | New packaged harness `/harness:rust-port` (full-feature no-downgrade Rust port loop) — 4 specialist agents + 3 skills + parity ledger; plugin v1.3.0→1.4.0 | `harness/agents/rust-port-*`, `harness/skills/rust-port*`, `registry.json`, `entries/` | Owner: automated full-parity Rust port harness (flagship: meta/Archon TS→Rust) |
