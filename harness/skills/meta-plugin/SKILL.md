@@ -66,9 +66,11 @@ All `Agent` calls use `model: "opus"`.
 | `meta-plugin-protocol-drift-analyst` | protocol↔consumer contract drift | general-purpose |
 | `integration-qa` | cross-boundary verification before each commit | general-purpose |
 | `continuity-steward` | writes the cold-start HANDOFF.md at budget | general-purpose |
+| `evolution-steward` | evaluates each run, mines lessons, upgrades the harness (runs last) | general-purpose |
 
 Specialists use the matching skills: `cross-repo-health`, `hub-registry-sync`,
-`protocol-drift-scan`. QA and steward use cross-boundary verification and `session-relay`.
+`protocol-drift-scan`. QA and steward use cross-boundary verification, `session-relay`, and
+`harness-evolution`.
 
 ## Phase 0: Context check (initial / resume / partial re-run)
 
@@ -127,9 +129,20 @@ Repeat until a stop condition. Each cycle:
 
 ## Phase 3: HAND OFF (at cycle budget)
 
-Invoke `session-relay` HAND OFF: spawn `continuity-steward` to write+commit
-`.handoff/loop/HANDOFF.md`, broadcast the weave `relay:handoff` heartbeat (`to:"all"`), best-effort
-one-shot cron successor, then **stop** (no further `ScheduleWakeup`).
+First run **Phase E** (lightweight retro) so the budget boundary doesn't lose lessons. Then invoke
+`session-relay` HAND OFF: spawn `continuity-steward` to write+commit `.handoff/loop/HANDOFF.md`,
+broadcast the weave `relay:handoff` heartbeat (`to:"all"`), best-effort one-shot cron successor,
+then **stop** (no further `ScheduleWakeup`).
+
+## Phase E: Evaluate & evolve (runs last — at DONE and at HAND OFF)
+
+Invoke `evolution-steward` (`model: "opus"`, skill `harness-evolution`). It evaluates the run from
+`.handoff/loop/` artifacts, mines generalizable lessons, appends them to the lessons ledger, and
+**upgrades the harness** — auto-applying only low-risk in-scope edits (via the standard PR flow,
+with a CLAUDE.md change-history row) and writing structural proposals to
+`.handoff/loop/proposed-upgrades.md` for owner approval. It never weakens a gate and only stewards
+this harness (scope law). At HAND OFF do the lightweight version (capture lessons, defer applying);
+at DONE do the full retro.
 
 ## DONE criteria (terminal, evidence-backed)
 
@@ -139,6 +152,8 @@ Write `.handoff/loop/DONE` only when ALL hold, and record the evidence inside it
 - `build-health-auditor` reports GREEN for the in-scope repo set (or every red is an explicit
   `- [!]` with reason);
 - `meta-plugin-protocol-drift-analyst` reports zero unresolved breaking findings.
+
+After writing `DONE`, run **Phase E** (full retro) so the completed run feeds the harness's evolution.
 
 ## Data transfer protocol
 

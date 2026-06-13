@@ -26,14 +26,16 @@ three**: a plugin skill, its agents, and a catalog row.
 
 ```
 harness/
+├── LESSONS.md                              # durable, append-only cross-run lessons ledger
 ├── agents/                                  # SHARED plugin agent pool
 │   ├── integration-qa.md                    #   shared infra (reused by every harness)
 │   ├── continuity-steward.md                #   shared infra
 │   ├── build-health-auditor.md              #   shared infra
+│   ├── evolution-steward.md                 #   shared infra — MANDATORY in every harness
 │   └── <name>-<specialist>.md               #   per-harness specialists, name-prefixed
 └── skills/
     └── <name>/                              # the orchestrator (= the /harness:<name> command)
-        ├── SKILL.md                         #   leader: phases, roster, data flow, eject, tests
+        ├── SKILL.md                         #   leader: phases, roster, data flow, eject, tests, Phase E
         ├── references/
         │   ├── backlog-seeding.md           #   findings → ordered backlog (loop harnesses)
         │   └── eject.md                     #   install-into-target-repo procedure
@@ -42,25 +44,36 @@ harness/
             ├── loop_state.template.md        #   ledger template (loop harnesses)
             └── ralph-<name>.sh               #   external SAFE self-restart runner (loop harnesses)
     ├── session-relay/                       # shared sub-skills (handoff/resume, etc.)
+    ├── harness-evolution/                   # shared — the evolution-steward's method (MANDATORY)
     └── <name>-specific sub-skills/          # the "how" skills this harness's agents use
 ```
 
 **Agent scope (shared pool model):** reusable infra agents (`integration-qa`,
-`continuity-steward`, `build-health-auditor`) are **shared, unprefixed** — every harness reuses
-them. Use-case specialists are **per-harness, name-prefixed** (`meta-plugin-registry-curator`,
-`rust-port-porter`) so they never collide in the shared `agents/` directory.
+`continuity-steward`, `build-health-auditor`, `evolution-steward`) are **shared, unprefixed** —
+every harness reuses them. Use-case specialists are **per-harness, name-prefixed**
+(`meta-plugin-registry-curator`, `rust-port-porter`) so they never collide in the shared `agents/`.
+
+**Mandatory in every harness — self-evolution:** every harness includes the shared
+`evolution-steward` agent + `harness-evolution` skill and a final **Phase E (Evaluate & evolve)**
+that runs last (at DONE and HAND OFF). It evaluates the run, mines generalizable lessons into
+`LESSONS.md`, and upgrades the harness — auto-applying only low-risk in-scope edits (via the standard
+PR flow + a change-history row), proposing structural changes for owner approval, and **never
+weakening a gate**. This is how a harness improves itself run over run (automates Phase 7).
 
 ## The seven steps to add a harness (the factory follows these)
 
 1. **Triage scope.** Is it a harness (agent runtime / toolkit / skills-framework / orchestrator)?
    If not, route to the right sibling hub (`plugin_hub` / `mcp_hub` / `tool_hub`) — don't force it.
-2. **Pick `<name>`** (kebab, no `harness-` prefix) and the team (reuse shared agents; add prefixed
-   specialists only for genuinely new roles — Phase 3-0/4-0 duplication check first).
+2. **Pick `<name>`** (kebab, no `harness-` prefix) and the team. Always include the shared infra
+   agents — `integration-qa` (or a per-harness verifier), `continuity-steward`, **`evolution-steward`** —
+   and add prefixed specialists only for genuinely new roles (Phase 3-0/4-0 duplication check first).
 3. **Create the orchestrator skill** `harness/skills/<name>/SKILL.md` (assertive description with
-   trigger + follow-up keywords; documents execution mode, data flow, error handling, tests).
-4. **Create/​reuse agents** in `harness/agents/` and sub-skills in `harness/skills/`.
-5. **Make it ejectable** — bundle `scripts/eject.sh` + `references/eject.md` so it can be dropped
-   into a target repo's `.claude/` for git-tracked, repo-owned operation.
+   trigger + follow-up keywords; documents execution mode, data flow, error handling, tests, and a
+   final **Phase E (Evaluate & evolve)** that runs `evolution-steward`/`harness-evolution` last).
+4. **Create/​reuse agents** in `harness/agents/` and sub-skills in `harness/skills/` (reuse the shared
+   `evolution-steward` + `harness-evolution` — do not re-create them).
+5. **Make it ejectable** — bundle `scripts/eject.sh` (include `evolution-steward` + `harness-evolution`
+   in its copy lists) + `references/eject.md` so it drops into a target repo's `.claude/`.
 6. **Catalog it** — run `bash scripts/register.sh --id <name> --display "..." --category <cat>
    --status <s> --summary "..." [--runtime <r>] [--hosting registry-only --path harness/skills/<name>]`.
    The Rust-native registrar (the `hub-validate register` subcommand) appends the `registry.json`
