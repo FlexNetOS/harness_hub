@@ -3,9 +3,9 @@
 
 # Ignore local Claude settings, but TRACK the hand-authored harness so a fresh
 # session can cold-resume from committed state (agents + skills + orchestrator).
-.claude/*
-!.claude/agents/
-!.claude/skills/
+/.claude/*
+!/.claude/agents/
+!/.claude/skills/
 
 # Rust validator build artifacts
 scripts/hub-validate/target/

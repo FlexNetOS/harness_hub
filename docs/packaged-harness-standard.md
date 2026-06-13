@@ -43,7 +43,8 @@ harness/
             ├── eject.sh                     #   copy this harness into <target>/.claude/
             ├── loop_state.template.md        #   ledger template (loop harnesses)
             └── ralph-<name>.sh               #   external SAFE self-restart runner (loop harnesses)
-    ├── session-relay/                       # shared sub-skills (handoff/resume, etc.)
+    ├── harness-loop-init/                   # shared — lays down .handoff/loop/ (loop's FIRST step)
+    ├── session-relay-wrap-up/ + -resume/    # shared — full ICM-integrated handoff/resume
     ├── harness-evolution/                   # shared — the evolution-steward's method (MANDATORY)
     └── <name>-specific sub-skills/          # the "how" skills this harness's agents use
 ```
@@ -59,6 +60,20 @@ that runs last (at DONE and HAND OFF). It evaluates the run, mines generalizable
 `LESSONS.md`, and upgrades the harness — auto-applying only low-risk in-scope edits (via the standard
 PR flow + a change-history row), proposing structural changes for owner approval, and **never
 weakening a gate**. This is how a harness improves itself run over run (automates Phase 7).
+
+**Durable state (loop start) — two flavors:**
+- **File-based** (default for portable harnesses): `harness-loop-init` idempotently lays down
+  `.handoff/loop/` (findings/, reports/, seeded `loop_state.md`, the state-contract README) before
+  DISCOVER. State is committed markdown; continuity via `session-relay-wrap-up`/`-resume`.
+- **Kernel-backed** (when the repo runs the `hf` Continuity Ledger Kernel): `handoff-loop-init`
+  **drives `hf init`** to build the full `.handoff/` (ledger + context/capsule + packets + tasks +
+  decisions) and sets the ledger-residency `.gitignore` guard — never hand-rolling kernel artifacts;
+  fail-closed if `hf` is absent. The `handoff-loop-run` skill (or the canonical `handoff-loop` in
+  `meta/handoff` — vendored in this hub at `handoff-loop/`) then runs the witnessed loop (one task/
+  cycle: `hf resume` → drift → claim → work-in-scope → checkpoint → policy gate → handoff). The
+  committed ledger/packet is authoritative; packets are *rendered by `hf`*, never hand-written.
+
+Pick file-based for a portable harness; kernel-backed when the repo is on the kernel (ADR-0004/P7.36).
 
 **Continuity (session boundaries):** a loop harness uses the shared `session-relay-wrap-up` and
 `session-relay-resume` skills (the full, ICM-integrated form) — or the lighter `session-relay` — for

@@ -1,0 +1,31 @@
+{
+  "schema": "handoff.task.v1",
+  "id": "HFTASK-0007",
+  "title": "hf session on meta_git_lib worktree engine + policy.toml + sync preflight",
+  "status": "done",
+  "priority": "P0",
+  "objective": "ADR-0001 §2 (Research R3): add `hf session start|end [--recycle]` by DEPENDING ON meta_git_lib (worktree::git_ops add/remove, worktree::store TTL/ephemeral registry, worktree::hooks fire_post_create/destroy, helpers::{resolve_branch,ensure_worktrees_in_gitignore}, snapshot capture/restore) rather than reimplementing; fall back to `meta git worktree` CLI if lib not wired. Off origin/<base_branch>; reserve a weave path-scope lease; emit session_start/session_end; recycle a fresh set on end. Dotdir is .handoff (canonical; .hf does not exist). Add `.handoff/policy.toml` (remote/loop/merge). MUST include a start-time preflight verifying tree/branch/remote sync, refusing on drift (prior weave-loop failure lesson). Depend only on current lease-capable weave; refuse legacy repowire/mcp-broker.",
+  "path_scope": [
+    "spike/**",
+    "handoff/**"
+  ],
+  "acceptance_criteria": [
+    "hf session on meta_git_lib worktree engine + policy.toml + sync preflight: implemented + cargo test green + checkpointed"
+  ],
+  "test_commands": [
+    "cargo test"
+  ],
+  "dependencies": [
+    "HFTASK-0002"
+  ],
+  "blocked_by": [],
+  "allows_network": false,
+  "allows_dependency_addition": true,
+  "correlation_id": "handoff-buildout",
+  "role": "implementer",
+  "intent_lock": {
+    "objective_hash": "blake3:6fcfef13df60b0a17efad52568f81bb39c6011205410405839dd9e96cc502a60",
+    "path_scope_hash": "blake3:2ffa7a442ff7ccdaf5c3a7ddad4cdf9b388fc5ed01dde27996a7c9f7d0e2f221",
+    "acceptance_hash": "blake3:2355967c6075c30f3223341619b6777ab0072d6438e6fdbad680003bfa63c551"
+  }
+}

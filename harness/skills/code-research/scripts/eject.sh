@@ -9,7 +9,7 @@ TARGET="${1:-}"
 TARGET="$(cd "$TARGET" && pwd)"
 PLUGIN="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"  # harness/
 
-SKILLS=(code-research code-research-map code-research-analyze code-research-verify session-relay-wrap-up session-relay-resume harness-evolution)
+SKILLS=(code-research code-research-map code-research-analyze code-research-verify session-relay-wrap-up session-relay-resume harness-loop-init harness-evolution)
 AGENTS=(code-research-cartographer code-research-analyst code-research-verifier code-research-synthesizer \
         continuity-steward evolution-steward)
 

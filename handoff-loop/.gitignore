@@ -1,0 +1,6 @@
+/target
+/.handoff/ledger.db
+/.handoff/packets/
+
+.grit
+/_workspace/
