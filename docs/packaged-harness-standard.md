@@ -43,7 +43,8 @@ harness/
             ├── eject.sh                     #   copy this harness into <target>/.claude/
             ├── loop_state.template.md        #   ledger template (loop harnesses)
             └── ralph-<name>.sh               #   external SAFE self-restart runner (loop harnesses)
-    ├── session-relay/                       # shared sub-skills (handoff/resume, etc.)
+    ├── harness-loop-init/                   # shared — lays down .handoff/loop/ (loop's FIRST step)
+    ├── session-relay-wrap-up/ + -resume/    # shared — full ICM-integrated handoff/resume
     ├── harness-evolution/                   # shared — the evolution-steward's method (MANDATORY)
     └── <name>-specific sub-skills/          # the "how" skills this harness's agents use
 ```
@@ -59,6 +60,11 @@ that runs last (at DONE and HAND OFF). It evaluates the run, mines generalizable
 `LESSONS.md`, and upgrades the harness — auto-applying only low-risk in-scope edits (via the standard
 PR flow + a change-history row), proposing structural changes for owner approval, and **never
 weakening a gate**. This is how a harness improves itself run over run (automates Phase 7).
+
+**Durable state (loop start):** a loop harness's FIRST action is `harness-loop-init` (or
+`bash …/harness-loop-init/scripts/init-handoff-loop.sh`) — idempotently lay down `.handoff/loop/`
+(findings/, reports/, seeded `loop_state.md`, the state-contract README) before DISCOVER. Defer to
+the `hf` kernel when it owns `.handoff/` in the repo.
 
 **Continuity (session boundaries):** a loop harness uses the shared `session-relay-wrap-up` and
 `session-relay-resume` skills (the full, ICM-integrated form) — or the lighter `session-relay` — for
