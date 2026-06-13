@@ -42,8 +42,35 @@ is to hand off at a cycle budget and resume cold from committed state.
 4. Reset `cycles_this_session = 0` in `.handoff/loop/loop_state.md` (keep `cycles_total`).
 5. Continue the `meta-plugin` at the backlog's current `- [ ]` item.
 
+## Multi-system release & resume (grit + handoff + fleet + .kb)
+
+The loop now runs over several integrated systems; a clean handoff must release/record
+in **all** of them, not just write HANDOFF.md (see the handoff kernel's `session-relay`
++ `systems-conduct` skills). State precedence everywhere: **Git > ledger > cards > .kb >
+prose.**
+
+**On HAND OFF, additionally:**
+- **grit** — `grit done --agent <id>` for every active agent (merges its worktree +
+  releases its AST-symbol locks); `grit gc` strays; confirm `grit status` is clean. A
+  held grit lock blocks the next session.
+- **handoff** — `hf checkpoint <ID> "<landed/verified/next>"` → `hf handoff` (re-render
+  the packet from the **real** ledger, in the repo that owns it).
+- **fleet** — `hf fleet render <repo>` for any repo whose state changed; `.kb` write-back
+  via `hf sync` (when envctl injection is up).
+
+**On RESUME, additionally:**
+- Check `hf fleet status` (where the fleet stands; which repos have `ready` work) and
+  `grit status`/`grit worktree list` (orphaned locks/worktrees from a crashed session →
+  `grit gc`).
+- **Selection is hybrid, not auto-backfill:** auto-claim only tasks flagged `ready:true`
+  in their capsule/card; otherwise orient and let the orchestrator pull the
+  highest-value task across the fleet. Do not auto-work every repo's backlog (FLEET
+  ledger swamp).
+
 ## Non-negotiables
 
 - **Write state down every cycle** — never hold the plan only in context.
 - **Commit the checkpoint** — a fresh process must resume from committed state alone.
 - **Fail-closed on a red baseline** — resume verifies before it builds.
+- **Release every system on handoff** — never leave a grit lock held or a worktree dirty.
+- **Pull by value, don't backfill** — sessions orient; the orchestrator selects.
