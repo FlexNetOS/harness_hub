@@ -11,9 +11,9 @@ TARGET="${1:-}"
 TARGET="$(cd "$TARGET" && pwd)"
 PLUGIN="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"  # harness/
 
-SKILLS=(rust-port rust-port-inventory rust-port-translate rust-port-parity session-relay cross-repo-health)
+SKILLS=(rust-port rust-port-inventory rust-port-translate rust-port-parity session-relay cross-repo-health harness-evolution)
 AGENTS=(rust-port-cartographer rust-port-architect rust-port-porter rust-port-parity-verifier \
-        build-health-auditor continuity-steward)
+        build-health-auditor continuity-steward evolution-steward)
 
 mkdir -p "$TARGET/.claude/skills" "$TARGET/.claude/agents" \
          "$TARGET/.handoff/loop/findings" "$TARGET/.handoff/loop/reports"

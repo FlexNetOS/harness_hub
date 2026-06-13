@@ -47,9 +47,10 @@ All `Agent` calls use `model: "opus"`.
 | `rust-port-parity-verifier` | differential parity proof (source vs Rust) | specialist |
 | `build-health-auditor` | cargo build/clippy/test green gate | shared |
 | `continuity-steward` | cold-start HANDOFF.md at budget | shared |
+| `evolution-steward` | evaluates each run, mines lessons, upgrades the harness (runs last) | shared |
 
 Skills: `rust-port-inventory`, `rust-port-translate`, `rust-port-parity`, `cross-repo-health`,
-`session-relay`.
+`session-relay`, `harness-evolution`.
 
 ## Phase 0: Context check (initial / resume / partial)
 
@@ -88,8 +89,18 @@ crate/dir**. Ask once if not given; record both in `loop_state.md`.
 
 ## Phase 3: HAND OFF (at budget)
 
+First run **Phase E** (lightweight retro) so the budget boundary doesn't lose lessons. Then
 `session-relay` HAND OFF: `continuity-steward` writes+commits `.handoff/loop/HANDOFF.md`, weave
 `relay:handoff` heartbeat, then stop. (Prefer `hf` verbs when the handoff kernel is reachable.)
+
+## Phase E: Evaluate & evolve (runs last — at DONE and at HAND OFF)
+
+Invoke `evolution-steward` (`model: "opus"`, skill `harness-evolution`): evaluate the run (friction,
+**gate quality** — did the parity gate miss a downgrade or false-block?, coverage, human walls),
+mine generalizable lessons into the lessons ledger, and upgrade the harness — auto-applying only
+low-risk in-scope edits via the standard PR flow (with a change-history row), proposing structural
+changes in `.handoff/loop/proposed-upgrades.md`. It may only ever *strengthen* the parity/DONE gate,
+never weaken it, and stewards only this harness (scope law). Lightweight at HAND OFF, full at DONE.
 
 ## DONE gate (no-downgrade, evidence-backed)
 
@@ -99,7 +110,8 @@ Write `.handoff/loop/DONE` only when ALL hold:
 - Every unit is `- [x]` (parity-verified) or an explicit `- [≠]` intentional-divergence with owner approval.
 - `cargo build` + `cargo clippy -D warnings` + `cargo test` all green.
 - The parity trail in `.handoff/loop/findings/parity.md` shows a passing differential test per unit.
-Record the evidence (counts + the sweep result) inside `DONE`.
+Record the evidence (counts + the sweep result) inside `DONE`. After writing `DONE`, run **Phase E**
+(full retro) so the completed port feeds the harness's evolution.
 
 ## Data transfer & error handling
 
