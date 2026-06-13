@@ -2,8 +2,9 @@
 
 **Catalog of agent harnesses — coding-agent runtimes, harness toolkits, and orchestration frameworks used across the FlexNetOS meta workspace.**
 
-A FlexNetOS hub: `registry.json` is the single source of truth, `scripts/validate.py`
-keeps it consistent (CI-enforced), and this README mirrors it. Follows the
+A FlexNetOS hub: `registry.json` is the single source of truth, the Rust-native
+`scripts/validate.sh` (the `hub-validate` crate) keeps it consistent (CI-enforced),
+and this README mirrors it. Follows the
 [Hub Standard](https://github.com/FlexNetOS/template_hub/blob/master/docs/hub-standard.md).
 
 ## Scope
@@ -22,8 +23,11 @@ runtime or the toolkit that builds one, it belongs here.*
 |---------|----------|---------|--------|-----|
 | [oh-my-pi](entries/oh-my-pi.md) | agent-runtime | multi | stable | [doc](entries/oh-my-pi.md) · [run](snippets/oh-my-pi.sh) |
 | [harness](entries/harness.md) | harness-toolkit | node | beta | [doc](entries/harness.md) |
+| [meta-plugin](entries/meta-plugin.md) | orchestrator | multi | beta | [doc](entries/meta-plugin.md) |
 
-The `harness` toolkit is vendored in-repo at [`harness/`](harness).
+The `harness` toolkit is vendored in-repo at [`harness/`](harness); it now also ships **packaged
+harnesses** (ready-made, runnable, ejectable) as `/harness:<name>` commands — see the
+[packaged-harness standard](docs/packaged-harness-standard.md). `meta-plugin` is the first.
 
 ## Entry shape
 
@@ -34,5 +38,5 @@ orchestrator), `runtime`, and `path` (for content vendored in-repo).
 ## Adding a harness
 
 Add an entry to `registry.json`, create `entries/<id>.md` (and a `snippets/<id>.sh` if
-useful), add a Catalog row, then run `python3 scripts/validate.py`. See the
+useful), add a Catalog row, then run `bash scripts/validate.sh`. See the
 [Hub Standard](https://github.com/FlexNetOS/template_hub/blob/master/docs/hub-standard.md).

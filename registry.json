@@ -1,7 +1,7 @@
 {
   "schema": "./registry.schema.json",
-  "version": "0.1.0",
-  "updated": "2026-06-04",
+  "version": "0.2.0",
+  "updated": "2026-06-13",
   "org": "FlexNetOS",
   "hub": "harness_hub",
   "description": "Catalog of agent harnesses — coding-agent runtimes, harness toolkits, and orchestration frameworks used across the FlexNetOS meta workspace.",
@@ -39,6 +39,19 @@
       "path": "harness",
       "doc": "entries/harness.md",
       "notes": "Vendored in-repo at harness/ (nested .git stripped). Not a nested-meta child; lives directly in harness_hub's tree."
+    },
+    {
+      "id": "meta-plugin",
+      "displayName": "meta-plugin (repo-org harness)",
+      "category": "orchestrator",
+      "status": "beta",
+      "summary": "First packaged harness shipped by the harness plugin. An autonomous, resumable, self-restarting Ralph loop (/harness:meta-plugin) that organizes the FlexNetOS meta workspace via harness_hub/meta-plugins/meta_plugin_protocol/meta_plugin_api: hub/registry consistency, cross-repo build/test/lint health, protocol↔consumer drift, and catalog/inventory organization. Run in place or eject into a target repo's .claude/.",
+      "tags": ["harness", "packaged", "ralph-loop", "orchestrator", "repo-organization", "meta-plugin"],
+      "runtime": "multi",
+      "hosting": "registry-only",
+      "path": "harness/skills/meta-plugin",
+      "doc": "entries/meta-plugin.md",
+      "notes": "Packaged harness inside the harness plugin (harness/skills/meta-plugin + shared agents in harness/agents/). Invoke /harness:meta-plugin; ejectable via skills/meta-plugin/scripts/eject.sh. Pilot for the packaged-harness convention (docs/packaged-harness-standard.md)."
     }
   ]
 }
