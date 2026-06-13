@@ -32,6 +32,13 @@ MCP equivalent (when the `icm` MCP server is connected): `mcp__icm__icm_memory_r
 what's relevant** to the task — a targeted query, not a dump. Use a returned memory as *background that
 was true when written*; if it names a file/flag/symbol, verify it still exists before relying on it.
 
+> **Two layers — this skill is the second.** The *most important* recall is **deterministic and
+> up-front**: a `SessionStart` hook that runs `icm recall-context` at every session start (no model
+> decision), so the agent is primed before its first token — a missed recall makes the *whole* session
+> run blind. (Eject prints that hook snippet; within the meta workspace it's inherited from the
+> user-global settings.) This skill is the **as-needed complement** the model calls *mid-task* for a
+> targeted recall the up-front priming didn't cover, and for all stores. Priming-up-front > store-at-end.
+
 ## Store when you learn something durable (the trigger events)
 
 Store **immediately** when any of these happen — before moving on, not "later":
