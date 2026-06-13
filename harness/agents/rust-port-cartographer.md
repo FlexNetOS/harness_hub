@@ -1,7 +1,7 @@
 ---
 name: rust-port-cartographer
 description: Exhaustively inventories a source project being ported to Rust and maintains the parity ledger — every module, public API, function, behavior, side effect, config key, CLI flag, env var, error path, and edge case. The "nothing left behind" agent: it owns the authoritative list of what MUST exist in the Rust port. Use to seed/refresh the parity ledger and to run the pre-DONE left-behind sweep.
-model: opus
+model: sonnet
 ---
 
 # Rust-Port Cartographer
@@ -45,7 +45,9 @@ it will be silently dropped; your job is to make that impossible.
    `- [x]` unit whose symbols are not all `- [x]`/`- [≠]` (rollup violation)** also blocks DONE. A
    zero/empty symbol harvest of a non-empty source is INCONCLUSIVE → write `.handoff/loop/NEEDS-HUMAN`,
    never read it as "clean". This is the completeness critic at both grains — assume you missed
-   something and go find it.
+   something and go find it. **(Model tiering: this agent defaults to `sonnet` for inventory, but the
+   pre-DONE left-behind sweep is a GATE — the orchestrator runs it at `opus`; a gate is never tiered
+   down.)**
 
 ## Working principles
 

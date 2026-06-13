@@ -7,8 +7,12 @@ description: >-
   port", "rewrite in Rust", "full-parity Rust port", "port meta/Archon to Rust", AND follow-ups —
   "resume", "continue the port", "run it again", "re-run", "redo only the <unit/phase>", "based on
   the previous result", "what's left to port". Also ejectable: "install/eject the rust-port harness
-  into <repo>". Drives a Ralph loop over a parity ledger: one unit per cycle, differential parity
-  test, commit per cycle, hand off at budget. DONE only at 100% parity (nothing left behind).
+  into <repo>". ALSO does port-and-MERGE: "port <X> to Rust and merge into <Y>", "merge the rust code
+  into <repo>", "reconcile the port with <repo>" — ports X then integrates each verified unit into a
+  destination repo Y (re-verified in Y). Runs an automated 3-model workflow (opus on gates/hard design,
+  sonnet on structured work, haiku on mechanical). Drives a Ralph loop over a parity ledger: one unit
+  per cycle, differential parity test, commit per cycle, hand off at budget. DONE only at 100% parity
+  (+ 100% merged when a destination repo is set) — nothing left behind.
 ---
 
 # rust-port — full-feature, no-downgrade Rust port harness  (`/harness:rust-port`)
@@ -31,11 +35,29 @@ loop's premise is that state (the parity ledger) survives a fresh process. Per p
 
 | Phase | Mode | Shape |
 |-------|------|-------|
-| Discover / inventory | Sub-agent | cartographer → ledger; architect → target design (parallel-capable) |
+| Discover / inventory | Sub-agent | cartographer → ledger+symbol-map; architect → target design; researcher → X⟷Y reuse map; cross-repo-referencer → reference map (parallel-capable) |
 | Port (per cycle) | Sub-agent, sequential | one unit → porter → build-health → parity-verifier |
+| Merge (per cycle, when `dest_repo` Y set) | Sub-agent, sequential | merge-integrator → build-health(Y) → parity-verifier re-verify in Y |
 | Handoff | Sub-agent | continuity-steward writes HANDOFF.md |
 
-All `Agent` calls use `model: "opus"`.
+### Model tiering — the automated 3-model workflow (opus / sonnet / haiku)
+
+`Agent` calls are tiered by task, NOT all-opus — but **every no-downgrade GATE runs at `opus`** and is
+never tiered down. Tiering a *worker* down is safe **because the opus parity gate catches any worker
+downgrade** (a sonnet porter that drops a branch is FAILed and bounced back, never shipped) — so
+tiering is a cost/speed lever, never a correctness downgrade.
+
+- **opus** (gates + hard design): `rust-port-architect`, `rust-port-parity-verifier`,
+  `rust-port-merge-integrator`, `evolution-steward`, and the `rust-port-cartographer` **pre-DONE
+  left-behind sweep** (the completeness gate — overridden to opus even though the agent defaults lower).
+- **sonnet** (structured work): `rust-port-cartographer` (inventory), `rust-port-porter`,
+  `rust-port-researcher`, `continuity-steward`.
+- **haiku** (mechanical): `build-health-auditor`, `rust-port-cross-repo-referencer`.
+
+**Escalation:** a tiered worker that hits reasoning beyond its tier (intricate concurrency, an
+ambiguous reconciliation) says so and the orchestrator re-runs it at the next tier up — never guess.
+Shared agents (`build-health-auditor`/`continuity-steward`/`evolution-steward`) keep their `opus`
+frontmatter; this orchestrator overrides their model per-call (scope law — don't edit shared defaults).
 
 ## Agents (in the plugin's shared `harness/agents/` pool)
 
@@ -44,13 +66,17 @@ All `Agent` calls use `model: "opus"`.
 | `rust-port-cartographer` | exhaustive source inventory + parity ledger + left-behind sweep | specialist |
 | `rust-port-architect` | Rust target layout + idiom map + dependency equivalents | specialist |
 | `rust-port-porter` | full (no-stub) idiomatic port of one unit | specialist |
-| `rust-port-parity-verifier` | differential parity proof (source vs Rust) | specialist |
+| `rust-port-parity-verifier` | differential parity proof (source vs Rust, + re-verify in Y) | specialist |
+| `rust-port-merge-integrator` | merge a verified unit into destination repo Y (no-downgrade) | specialist |
+| `rust-port-researcher` | deep research/discovery of X **and** Y (the reuse map) | specialist |
+| `rust-port-cross-repo-referencer` | cross-repo reference + blast-radius map (X⟷Y⟷substrates) | specialist |
 | `build-health-auditor` | cargo build/clippy/test green gate | shared |
 | `continuity-steward` | cold-start HANDOFF.md at budget | shared |
 | `evolution-steward` | evaluates each run, mines lessons, upgrades the harness (runs last) | shared |
 
-Skills: `rust-port-inventory`, `rust-port-translate`, `rust-port-parity`, `cross-repo-health`,
-`session-relay-wrap-up`, `session-relay-resume`, `harness-loop-init`, `harness-evolution`.
+Skills: `rust-port-inventory`, `rust-port-translate`, `rust-port-parity`, `rust-port-merge`,
+`cross-repo-reference`, `cross-repo-health`, `session-relay-wrap-up`, `session-relay-resume`,
+`harness-loop-init`, `harness-evolution` (research reuses `code-research-map`/`-analyze` + `deep-research`).
 
 ## Agent runtime (the declarative execution contract)
 
@@ -64,12 +90,15 @@ it in sync with the agent defs in `harness/agents/` and the per-row contracts th
 
 | Agent | Model | Runs-in (phase) | Concurrency | Trigger / precondition | Timeout & retry (fail-closed) | Inputs (reads) | Outputs (writes) | Gate-role |
 |-------|-------|-----------------|-------------|------------------------|-------------------------------|----------------|------------------|-----------|
-| `rust-port-cartographer` | opus | P1 DISCOVER (seed); DONE gate (left-behind sweep) | parallel-capable with `rust-port-architect` at DISCOVER; sequential at the sweep | initial run or new source/scope; and once more pre-DONE | retry once; on 2nd failure → `- [!]` blocked row + continue, never fake coverage; empty symbol harvest of non-empty source → `NEEDS-HUMAN` | source root; prior `parity-ledger.md`/`symbol-map.md` | `parity-ledger.md` + `symbol-map.md` (authoritative), `reports/inventory.md` | **completeness critic** — its two-grain sweep (zero unlisted units/symbols, zero `- [ ]`/`- [~]`, zero rollup violations) is a hard DONE precondition |
+| `rust-port-cartographer` | sonnet · **opus** (pre-DONE sweep = gate) | P1 DISCOVER (seed); DONE gate (left-behind sweep) | parallel-capable with `rust-port-architect` at DISCOVER; sequential at the sweep | initial run or new source/scope; and once more pre-DONE | retry once; on 2nd failure → `- [!]` blocked row + continue, never fake coverage; empty symbol harvest of non-empty source → `NEEDS-HUMAN` | source root; prior `parity-ledger.md`/`symbol-map.md` | `parity-ledger.md` + `symbol-map.md` (authoritative), `reports/inventory.md` | **completeness critic** — its two-grain sweep (zero unlisted units/symbols, zero `- [ ]`/`- [~]`, zero rollup violations) is a hard DONE precondition |
 | `rust-port-architect` | opus | P1 DISCOVER (layout); P2 ITERATE (only when a unit needs a new structural decision) | parallel-capable with cartographer at DISCOVER; on-demand, single-flight per unit otherwise | DISCOVER, or a porter/orchestrator structural question | retry once; unresolved equivalent → record options + surface to orchestrator, never pick/drop silently | source root; `parity-ledger.md` | `target-architecture.md` (layout + idiom map + dep table + port-and-map decisions) | advisory — establishes the no-downgrade idiom/dep + reimplement-vs-map-onto mapping the porter must follow; not a pass/fail gate |
-| `rust-port-porter` | opus | P2 ITERATE (the per-cycle worker) | **sequential, exactly one per cycle** (the one-specialist-per-cycle rule) | a picked unit whose `deps:` are all `- [x]` | retry once; if not finished → unit `- [~]`/`- [!]` + the specific `symbol-map.md` rows `- [ ]`/`- [!]`, never `- [x]` | unit's ledger + symbol rows; `target-architecture.md`; source file; `rust-port-translate` | Rust source + tests in the target crate; unit + symbol rows → `- [~]` | produces the artifact under test; its claim is **never self-certified** (verifier + auditor gate it) |
-| `build-health-auditor` | opus | P1 DISCOVER (skeleton baseline); P2 ITERATE (post-port compile gate) | sequential, after the porter in a cycle | a freshly ported unit, or the DISCOVER baseline / verify-on-resume | retry once; environmental failure (toolchain/network) → `skip` w/ reason, never silent pass | target repo set; the porter's new code | `findings/health.md`; `baseline.md` | **green-build gate** — `cargo build` + `clippy -D warnings` (+ `test`) must pass; precondition for the parity gate |
+| `rust-port-porter` | sonnet (escalate hard units → opus) | P2 ITERATE (the per-cycle worker) | **sequential, exactly one per cycle** (the one-specialist-per-cycle rule) | a picked unit whose `deps:` are all `- [x]` | retry once; if not finished → unit `- [~]`/`- [!]` + the specific `symbol-map.md` rows `- [ ]`/`- [!]`, never `- [x]` | unit's ledger + symbol rows; `target-architecture.md`; source file; `rust-port-translate` | Rust source + tests in the target crate; unit + symbol rows → `- [~]` | produces the artifact under test; its claim is **never self-certified** (verifier + auditor gate it) |
+| `build-health-auditor` | haiku (per-call override; shared frontmatter stays opus) | P1 DISCOVER (skeleton baseline); P2 ITERATE (post-port compile gate); MERGE (Y green) | sequential, after the porter in a cycle | a freshly ported unit, or the DISCOVER baseline / verify-on-resume | retry once; environmental failure (toolchain/network) → `skip` w/ reason, never silent pass | target repo set; the porter's new code | `findings/health.md`; `baseline.md` | **green-build gate** — `cargo build` + `clippy -D warnings` (+ `test`) must pass; precondition for the parity gate |
 | `rust-port-parity-verifier` | opus | P2 ITERATE (the per-cycle gate) | sequential, after build-health-auditor | a unit that compiles + passes clippy | retry once; can't run one side → `INCONCLUSIVE`, unit stays open (never pass on faith) | unit's ledger + symbol rows; source unit; Rust impl; `target-architecture.md` | `findings/parity.md` (verdict + diff); per-symbol `- [x]` in `symbol-map.md`; golden fixtures | **the no-downgrade gate** — only a `PASS` (every contract branch matches **and** all the unit's symbols `- [x]`/`- [≠]`) lets the orchestrator mark `- [x]` |
-| `continuity-steward` | opus | P3 HAND OFF (at budget) | sequential, single-flight at the budget boundary | `cycles_this_session >= cycle_budget` (or STOP) | retry once; missing `baseline.md` → reconstruct verify-on-resume block + note it | `parity-ledger.md`, `symbol-map.md`, `loop_state.md`, `baseline.md`, session commit list | `HANDOFF.md` (state + pointers, the authoritative resume signal) | continuity gate — writes the cold-resume contract; no fake DONE may substitute for it |
+| `rust-port-merge-integrator` | opus | MERGE (per cycle, when `dest_repo` Y set) | sequential, after a unit's standalone parity `PASS`; one per cycle | a parity-verified unit + a `dest_repo` Y | retry once; unresolvable conflict / Y-substrate can't express a behavior → `- [!]`/`- [≠]` + route up, never drop a side | ported Rust; `merge-ledger.md`; `reports/{research,cross-repo-refs}.md`; repo Y | merged Rust in Y; `merge-ledger.md`; `findings/merge.md` | **no-downgrade-across-the-merge gate (with the re-verify)** — reuse>duplicate but never reuse-by-narrowing; Y stays green |
+| `rust-port-researcher` | sonnet (escalate ambiguous verdicts → opus) | P1 DISCOVER; per-unit on demand | parallel-capable at DISCOVER | initial run / a unit needing external or Y-context research | retry once; inconclusive → record open question + evidence, never assume | source X, dest Y, docs/web, `git-kb code` | `reports/research.md` (X-needs ⟷ Y-provides reuse map) | advisory — feeds reuse-vs-reimplement + map-onto-Y; read-only, not a pass/fail gate |
+| `rust-port-cross-repo-referencer` | haiku (escalate reconciliation judgment → higher tier) | P1 DISCOVER (seed map); MERGE (refresh touched symbols) | parallel-capable at DISCOVER; per merge cycle otherwise | a merge run (`dest_repo` Y set) | retry once; empty graph for non-empty repo → re-index; still empty → `INCONCLUSIVE`, never "no references" | X, Y, substrate repos; `symbol-map.md`; `.meta.yaml`; `git-kb code`, `meta` | `reports/cross-repo-refs.md` (per-symbol blast radius + lock scope) | advisory — supplies blast radius + contract-compat flags the merge-integrator gates on; mechanical collection |
+| `continuity-steward` | sonnet (per-call override; shared frontmatter stays opus) | P3 HAND OFF (at budget) | sequential, single-flight at the budget boundary | `cycles_this_session >= cycle_budget` (or STOP) | retry once; missing `baseline.md` → reconstruct verify-on-resume block + note it | `parity-ledger.md`, `symbol-map.md`, `loop_state.md`, `baseline.md`, session commit list | `HANDOFF.md` (state + pointers, the authoritative resume signal) | continuity gate — writes the cold-resume contract; no fake DONE may substitute for it |
 | `evolution-steward` | opus | Phase E (runs **last** — at DONE full retro, at HAND OFF lightweight) | sequential, single-flight at the run boundary (never mid-cycle) | end of run (DONE or HAND OFF) | retry once; thin artifacts → evaluate what exists + record the gap as its own lesson | `.handoff/loop/` artifacts; CLAUDE.md change history; `LESSONS.md` | `evaluation.md`; `proposed-upgrades.md`; lessons-ledger rows; applied PR edits | **gate-strengthener only** — may evaluate and *strengthen* the parity/DONE gate, never weaken it (scope law) |
 
 **Loop-level runtime (the schedule the runtime drives):**
@@ -91,7 +120,9 @@ it in sync with the agent defs in `harness/agents/` and the per-row contracts th
 - absent → **INITIAL**.
 
 The orchestrator must know the **source root** (the project being ported) and the **Rust target
-crate/dir**. Ask once if not given; record both in `loop_state.md`.
+crate/dir**, and — for a **port-and-merge** run — the **destination repo Y** (`dest_repo`). Ask once if
+not given (default `dest_repo: none` = port-only); record all in `loop_state.md`. When `dest_repo` is
+set, the ITERATE cycle gains the MERGE step and DONE adds the merge conditions.
 
 ## Phase 1: DISCOVER (initial run)
 
@@ -100,15 +131,24 @@ crate/dir**. Ask once if not given; record both in `loop_state.md`.
    **and `.handoff/loop/symbol-map.md`** (every source symbol — fn/type/method/field/const/variant/
    trait/CLI flag/route — harvested deterministically via `git kb code symbols --json --limit -1`,
    all `- [ ]`, each `unit:`-tagged). See `references/symbol-map.md`.
-3. `rust-port-architect` → `.handoff/loop/target-architecture.md` (crate layout, idiom map, deps).
-4. `build-health-auditor` → confirm the Rust target skeleton builds (baseline) → `.handoff/loop/baseline.md`.
+3. `rust-port-researcher` → `.handoff/loop/reports/research.md` (deep research of X **and**, when
+   `dest_repo` Y is set, Y — the X-needs ⟷ Y-provides **reuse map** so the port maps onto what Y
+   already has instead of duplicating it). Reuses `code-research-*` + `deep-research`.
+4. `rust-port-architect` → `.handoff/loop/target-architecture.md` (crate layout, idiom map, deps, and
+   — informed by the reuse map — the per-unit port-and-map / reuse-vs-reimplement decisions).
+5. **When `dest_repo` Y is set:** `rust-port-cross-repo-referencer` → `.handoff/loop/reports/cross-repo-refs.md`
+   (the cross-repo reference + blast-radius map across X⟷Y⟷substrates) and seed
+   `.handoff/loop/merge-ledger.md` (one `- [ ]` row per unit). See `references/merge-ledger.md`.
+6. `build-health-auditor` → confirm the Rust target skeleton builds (baseline) **and, when Y is set,
+   that Y builds** → `.handoff/loop/baseline.md`.
    **Also confirm the SOURCE is runnable** — the differential parity-verifier's hard precondition is
    that it can *execute the source* (its `source_toolchain`: bun/node/python). Smoke-run the source
    (or its test suite) once here; if the source can't be executed, the parity gate can never produce a
    `PASS` (every unit would be `INCONCLUSIVE`), so record `.handoff/loop/NEEDS-HUMAN` now and stop —
    fail fast at DISCOVER, not per-unit forever.
-5. Order the ledger by dependency (leaf modules / pure functions first; entrypoints last). See
-   `references/parity-ledger.md`. Commit ledger + state + architecture.
+7. Order the ledger by dependency (leaf modules / pure functions first; entrypoints last). See
+   `references/parity-ledger.md`. Commit ledger + symbol-map + state + architecture + research +
+   (when Y set) cross-repo-refs + merge-ledger.
 
 ## Phase 2: ITERATE (one unit per cycle)
 
@@ -124,8 +164,16 @@ crate/dir**. Ask once if not given; record both in `loop_state.md`.
    (rollup rule) → mark the unit `- [x]`. Any unverified symbol or divergence → leave `- [~]`/`- [!]`
    with the exact missing behavior + symbol id; do NOT commit a fake `- [x]`. **A dropped symbol or
    downgrade never passes the gate.**
-6. Write ledger back, bump counters, **commit** one unit (`port(<crate>): <unit> — parity verified`)
-   with the `.handoff/loop/` state. Self-pace (`ScheduleWakeup`).
+6. **MERGE step (only when `dest_repo` Y is set)** — for the unit just marked `- [x]`:
+   `rust-port-cross-repo-referencer` refreshes the touched symbols' references → `rust-port-merge-integrator`
+   integrates the unit into Y (landing decision, reuse>duplicate, grit symbol-lock, conflict resolution —
+   see `rust-port-merge`) → `build-health-auditor` (Y compiles/clippy) → `rust-port-parity-verifier`
+   **re-runs the differential gate in Y's context**. Only a re-`PASS` (+ Y green) marks the unit `- [x]`
+   in `merge-ledger.md`; a downgrade introduced by the merge keeps it `- [~]`. (Skip this step entirely
+   when `dest_repo: none`.)
+7. Write ledger(s) back, bump counters, **commit** one unit (`port(<crate>): <unit> — parity verified`,
+   or `port+merge(<crate>): <unit> — verified in Y` when merged) with the `.handoff/loop/` state.
+   Self-pace (`ScheduleWakeup`).
 
 ## Phase 3: HAND OFF (at budget)
 
@@ -158,13 +206,18 @@ Write `.handoff/loop/DONE` only when ALL hold:
   approval — **and every symbol in `symbol-map.md` is `- [x]`/`- [≠]`** (symbols X/Y = Y/Y).
 - `cargo build` + `cargo clippy -D warnings` + `cargo test` all green.
 - The parity trail in `.handoff/loop/findings/parity.md` shows a passing differential test per unit.
-Record the evidence (unit counts, **symbol counts X/Y**, and both sweep results) inside `DONE`. After writing `DONE`, run **Phase E**
+- **When `dest_repo` Y is set (merge in scope):** the **merge ledger is 100%** — every ported unit is
+  `- [x]` merged + **re-verified in Y** (or owner-approved `- [≠]`); a merge left-behind sweep finds no
+  ported-but-unmerged unit; **Y's** `cargo build`/`clippy`/`test` are green; and no contract Y's
+  consumers depend on was broken (cross-repo-referencer compat check). See `references/merge-ledger.md`.
+Record the evidence (unit counts, **symbol counts X/Y**, both sweep results, **and merge counts X/Y +
+the Y-green result when merging**) inside `DONE`. After writing `DONE`, run **Phase E**
 (full retro) so the completed port feeds the harness's evolution.
 
 ## Data transfer & error handling
 
-- File bus: `.handoff/loop/{parity-ledger,symbol-map,target-architecture,baseline,loop_state,HANDOFF}.md`,
-  `findings/parity.md`, `reports/inventory.md`.
+- File bus: `.handoff/loop/{parity-ledger,symbol-map,merge-ledger,target-architecture,baseline,loop_state,HANDOFF}.md`,
+  `findings/{parity,merge}.md`, `reports/{inventory,research,cross-repo-refs}.md`.
 - **Retry once; never fake completion.** Specialist errors → `- [!]` with reason, continue other
   units. Parity FAIL → unit stays open. Human wall (needs network creds to run source, etc.) →
   `.handoff/loop/NEEDS-HUMAN`, stop. Conflicting behavior readings → keep both, verifier adjudicates.
@@ -173,13 +226,15 @@ Record the evidence (unit counts, **symbol counts X/Y**, and both sweep results)
 
 ## Team size
 
-7 agents (Large): 4 specialists + 3 shared (`build-health-auditor`, `continuity-steward`,
-`evolution-steward`). One specialist runs per cycle, so coordination stays bounded — see the
-**Agent runtime** table above for the full per-agent execution contract.
+10 agents (Large): 7 specialists (`rust-port-cartographer`, `-architect`, `-porter`,
+`-parity-verifier`, `-merge-integrator`, `-researcher`, `-cross-repo-referencer`) + 3 shared
+(`build-health-auditor`, `continuity-steward`, `evolution-steward`). Still **one specialist per cycle**
+(porter in a port cycle; merge-integrator in the appended merge step), so coordination stays bounded —
+see the **Agent runtime** table above for the full per-agent execution contract + the 3-model tiering.
 
 ## Eject
 
-`bash scripts/eject.sh <target-repo>` copies this harness (skills + the 7 agents) into the port
+`bash scripts/eject.sh <target-repo>` copies this harness (skills + the 10 agents) into the port
 repo's `.claude/` and scaffolds `.handoff/loop/`. See `references/eject.md`. Invoke as `/rust-port`
 once ejected.
 
@@ -211,8 +266,23 @@ every `symbol-map.md` row for the unit: the dropped field's row stays `- [ ]` an
 `FAIL`s → by the rollup rule the unit can't reach `- [x]`. The pre-DONE symbol sweep would also catch
 it as an unmapped/unverified symbol. The dropped symbol cannot hide behind the module compiling.
 
+**Port-and-merge happy path:** Port `meta/Archon` (TS/Bun) to Rust **and merge into `harness-agent-rs`**
+(`dest_repo` Y). DISCOVER: researcher's reuse map finds Y already provides durable run-state via `hf`
+and messaging via `weave`, so the architect marks those units MAP-ONTO (not reimplement);
+cross-repo-referencer seeds the reference map + merge-ledger. Cycle N (haiku/sonnet/opus tiered): porter
+(sonnet) ports `dag-executor` layer logic → verifier (opus) PASS standalone → merge-integrator (opus)
+lands it as a new `harness-agent-rs` module, grit-locks the touched Y symbols, wires it → build-health
+(haiku) Y green → verifier (opus) **re-verifies in Y** → `- [x]` merged, commit. … At 100% port + 100%
+merge, both sweeps clean, Y green → `DONE`.
+
+**Error path (merge downgrade):** merge-integrator maps a streaming run-event unit onto an existing Y
+helper that buffers. Y compiles, but the **re-verification in Y** feeds a streaming input → Y emits one
+buffer (source streamed) → `FAIL`. The unit stays `- [~]` in the merge ledger (a standalone PASS does
+not close a merge row); reuse-by-narrowing is rejected — next cycle it extends the Y helper to stream.
+
 ## References
 - `references/parity-ledger.md` — unit ledger schema + dependency ordering + the no-downgrade legend.
+- `references/merge-ledger.md` — destination-repo merge ledger schema + landing decisions + merge DONE gate.
 - `references/symbol-map.md` — per-symbol map schema + deterministic harvest + the unit-rollup rule.
 - `references/runtime-constructs.md` — port-and-map decision table for agent-runtime / orchestration
   subsystems (reimplement vs map-onto `hf`/`weave`/`grit`/`icm`/provider-CLI; no behavior dropped).
