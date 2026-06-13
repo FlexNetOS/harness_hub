@@ -46,6 +46,7 @@ harness/
     ├── harness-loop-init/                   # shared — lays down .handoff/loop/ (loop's FIRST step)
     ├── session-relay-wrap-up/ + -resume/    # shared — full ICM-integrated handoff/resume
     ├── harness-evolution/                   # shared — the evolution-steward's method (MANDATORY)
+    ├── icm-memory/                          # shared — persistent memory any agent recalls/stores as needed (runtime-delegated; graceful no-op without ICM)
     └── <name>-specific sub-skills/          # the "how" skills this harness's agents use
 ```
 

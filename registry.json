@@ -133,7 +133,7 @@
       "runtime": "multi",
       "hosting": "registry-only",
       "path": "harness/skills/rust-port",
-      "notes": "Packaged harness in the harness plugin (harness/skills/rust-port + rust-port-{inventory,translate,parity,merge}/cross-repo-reference + shared session-relay-*/cross-repo-health/harness-loop-init/harness-evolution; 10 agents = 7 specialists incl. merge-integrator/researcher/cross-repo-referencer + 3 shared). Invoke /harness:rust-port; ejectable via skills/rust-port/scripts/eject.sh. DONE gate covers per-symbol parity + runtime-construct + (when merging) merge-ledger re-verified in dest repo Y. Automated 3-model workflow (opus gates / sonnet / haiku). Flagship: TS->Rust port of meta/Archon merged into harness-agent-rs.",
+      "notes": "Packaged harness in the harness plugin (harness/skills/rust-port + rust-port-{inventory,translate,parity,merge}/cross-repo-reference + shared icm-memory/session-relay-*/cross-repo-health/harness-loop-init/harness-evolution; 10 agents = 7 specialists incl. merge-integrator/researcher/cross-repo-referencer + 3 shared). Agents have icm-memory to recall/store durable memory as needed (runtime-delegated, graceful no-op without ICM). Invoke /harness:rust-port; ejectable via skills/rust-port/scripts/eject.sh. DONE gate covers per-symbol parity + runtime-construct + (when merging) merge-ledger re-verified in dest repo Y. Automated 3-model workflow (opus gates / sonnet / haiku). Flagship: TS->Rust port of meta/Archon merged into harness-agent-rs.",
       "doc": "entries/rust-port.md"
     },
     {

@@ -75,8 +75,15 @@ frontmatter; this orchestrator overrides their model per-call (scope law — don
 | `evolution-steward` | evaluates each run, mines lessons, upgrades the harness (runs last) | shared |
 
 Skills: `rust-port-inventory`, `rust-port-translate`, `rust-port-parity`, `rust-port-merge`,
-`cross-repo-reference`, `cross-repo-health`, `session-relay-wrap-up`, `session-relay-resume`,
+`cross-repo-reference`, `cross-repo-health`, `icm-memory`, `session-relay-wrap-up`, `session-relay-resume`,
 `harness-loop-init`, `harness-evolution` (research reuses `code-research-map`/`-analyze` + `deep-research`).
+
+**Persistent memory (any agent, as needed):** every agent has the **`icm-memory`** skill available to
+**recall** relevant prior context before acting and **store** durable memory when it learns something
+(a decision, a resolved conflict, a parity gotcha, a completed unit). It is *not* a forced step — the
+lead delegates *which* agent uses it *when* at runtime (graceful no-op where ICM is absent, so the
+harness stays portable). This complements the loop-boundary `session-relay-wrap-up`/`-resume` ICM
+store/recall with finer, in-cycle agent memory.
 
 ## Agent runtime (the declarative execution contract)
 

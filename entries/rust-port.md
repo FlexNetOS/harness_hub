@@ -49,8 +49,9 @@ merged into `harness-agent-rs`.
 
 - **Skills** (`harness/skills/`): `rust-port` (orchestrator) + `rust-port-inventory`,
   `rust-port-translate`, `rust-port-parity`, `rust-port-merge`, `cross-repo-reference` (+ shared
-  `session-relay-wrap-up`, `session-relay-resume`, `cross-repo-health`, `harness-loop-init`,
-  `harness-evolution`; research reuses `code-research-*` + `deep-research`).
+  `icm-memory` [persistent memory any agent recalls/stores as needed], `session-relay-wrap-up`,
+  `session-relay-resume`, `cross-repo-health`, `harness-loop-init`, `harness-evolution`; research
+  reuses `code-research-*` + `deep-research`).
 - **Agents** (shared `harness/agents/`): `rust-port-cartographer`, `rust-port-architect`,
   `rust-port-porter`, `rust-port-parity-verifier`, `rust-port-merge-integrator`, `rust-port-researcher`,
   `rust-port-cross-repo-referencer` (7 specialists) + `build-health-auditor`, `continuity-steward`,
