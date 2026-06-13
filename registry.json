@@ -1,6 +1,6 @@
 {
   "schema": "./registry.schema.json",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "updated": "2026-06-13",
   "org": "FlexNetOS",
   "hub": "harness_hub",
@@ -12,7 +12,12 @@
       "category": "agent-runtime",
       "status": "stable",
       "summary": "A standalone coding agent with the IDE wired in — a TypeScript/Rust/Bun monorepo (omp) with its own TUI, swarm-extension, and agent/ai packages. Not a Claude Code plugin; a coding-agent harness of its own.",
-      "tags": ["coding-agent", "harness", "ide", "tui"],
+      "tags": [
+        "coding-agent",
+        "harness",
+        "ide",
+        "tui"
+      ],
       "runtime": "multi",
       "homepage": "https://omp.sh",
       "license": "MIT",
@@ -30,7 +35,11 @@
       "category": "harness-toolkit",
       "status": "beta",
       "summary": "The harness toolkit/landing vendored in this repo at harness/ (skills, docs, site). Source of the `harness` meta-skill that defines specialized agents and the skills they use.",
-      "tags": ["harness", "skills", "vendored"],
+      "tags": [
+        "harness",
+        "skills",
+        "vendored"
+      ],
       "runtime": "node",
       "homepage": "https://github.com/FlexNetOS/harness",
       "forked": true,
@@ -46,12 +55,40 @@
       "category": "orchestrator",
       "status": "beta",
       "summary": "First packaged harness shipped by the harness plugin. An autonomous, resumable, self-restarting Ralph loop (/harness:meta-plugin) that organizes the FlexNetOS meta workspace via harness_hub/meta-plugins/meta_plugin_protocol/meta_plugin_api: hub/registry consistency, cross-repo build/test/lint health, protocol↔consumer drift, and catalog/inventory organization. Run in place or eject into a target repo's .claude/.",
-      "tags": ["harness", "packaged", "ralph-loop", "orchestrator", "repo-organization", "meta-plugin"],
+      "tags": [
+        "harness",
+        "packaged",
+        "ralph-loop",
+        "orchestrator",
+        "repo-organization",
+        "meta-plugin"
+      ],
       "runtime": "multi",
       "hosting": "registry-only",
       "path": "harness/skills/meta-plugin",
       "doc": "entries/meta-plugin.md",
       "notes": "Packaged harness inside the harness plugin (harness/skills/meta-plugin + shared agents in harness/agents/). Invoke /harness:meta-plugin; ejectable via skills/meta-plugin/scripts/eject.sh. Pilot for the packaged-harness convention (docs/packaged-harness-standard.md)."
+    },
+    {
+      "id": "handoff",
+      "displayName": "handoff (continuity kernel)",
+      "category": "orchestrator",
+      "status": "beta",
+      "summary": "FlexNetOS handoff/continuity kernel — the hf binary + .handoff/ witnessed ledger. The only sanctioned cross-session continuity path: checkpoint/handoff packets are rendered from the ledger, never hand-written. Ships the handoff-discipline harness (skills + agents) and fleet coordination.",
+      "tags": [
+        "handoff",
+        "continuity",
+        "orchestrator",
+        "kernel",
+        "ledger",
+        "fleet"
+      ],
+      "runtime": "multi",
+      "homepage": "https://github.com/FlexNetOS/handoff",
+      "hosting": "peer",
+      "repo": "git@github.com:FlexNetOS/handoff.git",
+      "workspaceMember": "handoff",
+      "doc": "entries/handoff.md"
     }
   ]
 }

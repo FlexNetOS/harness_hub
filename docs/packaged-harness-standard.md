@@ -61,9 +61,13 @@ them. Use-case specialists are **per-harness, name-prefixed** (`meta-plugin-regi
 4. **Create/​reuse agents** in `harness/agents/` and sub-skills in `harness/skills/`.
 5. **Make it ejectable** — bundle `scripts/eject.sh` + `references/eject.md` so it can be dropped
    into a target repo's `.claude/` for git-tracked, repo-owned operation.
-6. **Catalog it** — add a `registry.json` row (`category`, `status`, `runtime`, `hosting`,
-   `path: harness/skills/<name>`, `doc: entries/<name>.md`), the entry doc, and the README row;
-   then `bash scripts/validate.sh` must pass (Rust-native; never Python).
+6. **Catalog it** — run `bash scripts/register.sh --id <name> --display "..." --category <cat>
+   --status <s> --summary "..." [--runtime <r>] [--hosting registry-only --path harness/skills/<name>]`.
+   The Rust-native registrar (the `hub-validate register` subcommand) appends the `registry.json`
+   row, scaffolds `entries/<name>.md`, inserts the README row, bumps `updated`, and validates — one
+   fail-closed step (never Python). For an external/peer repo (not vendored) use
+   `--hosting peer --repo <git-url> --member <workspace-name>` instead of `--path`. `register.sh` is
+   the inverse of `eject.sh`.
 7. **Bump the plugin** — `plugin.json` + `marketplace.json` version, and reinstall/sync the plugin
    so `/harness:<name>` appears. Note divergence from upstream `revfactory/harness` if pushing.
 
