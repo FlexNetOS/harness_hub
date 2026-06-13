@@ -39,5 +39,26 @@ cat <<'SNIP'
 Parity ledger (.handoff/loop/parity-ledger.md) must hit 100% — no feature left behind. Runner:
 .claude/skills/rust-port/scripts/ralph-rust-port.sh (SAFE by default).
 
+# .claude/settings.json — DETERMINISTIC pre-session memory priming (recommended).
+# This is the MOST IMPORTANT memory layer: it fires at every session start with NO model decision,
+# so the agent is primed with prior context (decisions, resolved errors, gotchas) before its first
+# token — a missed recall makes the whole session run blind. The `icm-memory` skill is the as-needed
+# complement (the model recalls/stores mid-task). Within the meta workspace this is inherited from the
+# user-global settings; OUTSIDE it, add this so the priming travels with the harness. Graceful no-op
+# when ICM is absent (`command -v icm` guard + `|| true`), so it never blocks session start.
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          { "type": "command",
+            "command": "command -v icm >/dev/null && icm recall-context \"rust-port resume: prior decisions, resolved errors, parity/merge gotchas for this repo\" --limit 8 2>/dev/null || true" }
+        ]
+      }
+    ]
+  }
+}
+
 Done. Invoke the ejected harness as: /rust-port
 SNIP
