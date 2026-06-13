@@ -27,6 +27,7 @@ runtime or the toolkit that builds one, it belongs here.*
 | [handoff](entries/handoff.md) | orchestrator | multi | beta | [doc](entries/handoff.md) |
 | [weave](entries/weave.md) | orchestrator | rust | beta | [doc](entries/weave.md) |
 | [rust-port](entries/rust-port.md) | orchestrator | multi | beta | [doc](entries/rust-port.md) |
+| [code-research](entries/code-research.md) | orchestrator | multi | beta | [doc](entries/code-research.md) |
 
 The `harness` toolkit is vendored in-repo at [`harness/`](harness); it now also ships **packaged
 harnesses** (ready-made, runnable, ejectable) as `/harness:<name>` commands — see the
