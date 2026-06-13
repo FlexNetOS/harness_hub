@@ -17,7 +17,7 @@ Used by `code-research-cartographer`.
 1. **Use code intelligence first.** Prefer `git-kb code` / `git kb` AST tools over grep:
    `symbols` (what's defined), `callers`/`callees` (real usage), `impact` (blast radius),
    `query hotspots` (central code), `dead` (unwired code). Grep is for strings/config/docs only.
-   If the index is empty, run `git kb index <dir>` first.
+   If the index is empty, run `git kb code index <dir>` first.
 2. **Find the seams that define the system:**
    - **Entry points** — mains, servers, CLIs, MCP servers, exported library APIs, workers.
    - **Dependency graph** — internal module deps + the handful of external libs that shape the design

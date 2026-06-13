@@ -18,7 +18,7 @@ After ejecting, invoke as **`/rust-port`** in the target repo. Seed `loop_state.
 root** (project being ported) and the **Rust target** crate/dir on first run. DISCOVER's cartographer
 then seeds both `.handoff/loop/parity-ledger.md` (units) and `.handoff/loop/symbol-map.md` (one row
 per source symbol, harvested via `git kb code symbols --json --limit -1`); the source must be
-indexable (`git kb index <source_root>`) so symbol coverage is provable, not grep-guessed.
+indexable (`git kb code index <source_root>`) so symbol coverage is provable, not grep-guessed.
 
 ## Source vs target layout
 

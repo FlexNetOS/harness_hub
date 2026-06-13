@@ -34,7 +34,7 @@ exhaustively, so nothing is silently dropped. Used by `rust-port-cartographer`.
    route) into `.handoff/loop/symbol-map.md` — one row each, `unit:` tagged to its ledger row, status
    `- [ ]`. Harvest from the AST/index, **never grep**:
    ```bash
-   git kb index <source_root>
+   git kb code index <source_root>
    git kb code symbols --file <source-file> --json --limit -1   # --limit -1 = no truncation
    ```
    Routes/CLI flags that aren't AST symbols come from the route table / CLI definition. The harvested

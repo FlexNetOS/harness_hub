@@ -68,7 +68,10 @@ The symbol set must be *enumerable and reproducible*, so coverage is a diff, not
 Harvest from the AST/index, never from `grep` (grep finds text, misses overloads/re-exports, and
 can't prove completeness):
 
-1. **Index the source** (once per run / on refresh): `git kb index <source_root>`.
+1. **Index the source** (once per run / on refresh): `git kb code index <source_root>` (the `index`
+   subcommand lives under `git kb code` — `git kb index` is not a command). Without this step the
+   harvest returns `{"symbols":[],"count":0}` and the fail-closed rule below correctly walls — so
+   indexing is the precondition, not an optional warm-up.
 2. **Harvest per unit**, full output (no cap):
    ```bash
    git kb code symbols --file <source-file> --json --limit -1
@@ -76,8 +79,11 @@ can't prove completeness):
    ```
    `--json --limit -1` is mandatory — JSON is the stable machine shape; `-1` means *no truncation*
    (a default-50 cap would silently drop symbols, defeating the guarantee). Filter by `--kind` /
-   `--language` as needed. The JSON carries name, kind, signature, file, and parent type — exactly
-   the row fields above.
+   `--language` / `--path '<glob>'` as needed. Each JSON row carries `symbol_id`, `name`, `kind`,
+   `signature`, `file_path`, `line_range_*`, `parent`, and `language` — exactly the row fields above.
+   The `visibility` field may be **null** (e.g. for Rust in current git-kb), so derive the **visibility
+   filter from the `signature`'s own marker** (`pub`/`export`/`module.exports`/no-marker=private) +
+   the kind, not from that field. Apply the *same* derived filter to the map and the sweep denominator.
 3. **Routes / CLI flags** aren't always AST symbols — harvest them from the route table / CLI
    definition (the same sources the inventory skill names) and add a row each. A framework route
    macro or a config-driven flag still gets a row.
@@ -94,12 +100,26 @@ sound.
 ### Empty harvest is fail-closed (the anti-vacuous-pass rule)
 
 A harvest that returns **zero symbols for a non-empty source** (e.g. a language the index can't
-parse, an un-run `git kb index`, a wrong path) is **`INCONCLUSIVE` → write `.handoff/loop/NEEDS-HUMAN`**,
+parse, an un-run `git kb code index`, a wrong path) is **`INCONCLUSIVE` → write `.handoff/loop/NEEDS-HUMAN`**,
 never read as "no symbols → sweep clean." `Y = 0` over real source code is a *tooling failure*, not
 100% coverage: a `0/0` symbol sweep would let an entire unported source pass the symbol gate. It
 **blocks DONE** until the symbol set is harvested by a working method (language server / AST tool) and
 recorded. The unit ledger does not depend on AST-indexability, so the symbol gate must never be
 *weaker* than it by silently degrading to an empty denominator.
+
+## Scale — shard the map for large sources (repos ≥ the flagship target)
+
+A flat `symbol-map.md` is fine for hundreds of symbols, but a source the size of Archon (600+ units,
+likely thousands of symbols) makes one file too heavy to read and commit each cycle. For large
+sources, **shard the map by package/top-level directory**: `.handoff/loop/symbol-map/<package>.md`
+(one shard per ledger package), with `symbol-map.md` kept as a thin index (package → shard path,
+symbols X/Y per shard). Then:
+- the **porter/verifier read only the shard for the unit they touch** (bounded per-cycle context),
+- the **cartographer's sweep concatenates all shards** to form the full denominator (coverage is the
+  union of shards — a missing shard is itself a left-behind blocker),
+- commits stay small (one shard changes per cycle).
+Sharding is an organizational change only — it never relaxes a gate; the rollup rule, the two-grain
+sweep, and the fail-closed empty-harvest rule apply per shard and across the union.
 
 ## Relationship to the unit ledger (the rollup rule — load-bearing)
 

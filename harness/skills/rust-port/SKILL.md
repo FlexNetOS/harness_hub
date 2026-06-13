@@ -102,6 +102,11 @@ crate/dir**. Ask once if not given; record both in `loop_state.md`.
    all `- [ ]`, each `unit:`-tagged). See `references/symbol-map.md`.
 3. `rust-port-architect` → `.handoff/loop/target-architecture.md` (crate layout, idiom map, deps).
 4. `build-health-auditor` → confirm the Rust target skeleton builds (baseline) → `.handoff/loop/baseline.md`.
+   **Also confirm the SOURCE is runnable** — the differential parity-verifier's hard precondition is
+   that it can *execute the source* (its `source_toolchain`: bun/node/python). Smoke-run the source
+   (or its test suite) once here; if the source can't be executed, the parity gate can never produce a
+   `PASS` (every unit would be `INCONCLUSIVE`), so record `.handoff/loop/NEEDS-HUMAN` now and stop —
+   fail fast at DISCOVER, not per-unit forever.
 5. Order the ledger by dependency (leaf modules / pure functions first; entrypoints last). See
    `references/parity-ledger.md`. Commit ledger + state + architecture.
 
