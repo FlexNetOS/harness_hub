@@ -19,12 +19,18 @@ high-stakes verdict to opus rather than guess.
    libraries* X depends on (so the porter reproduces the effect, not a guess). Reuse the
    `code-research-map` / `code-research-analyze` skills and `git-kb code` intelligence; use deep web
    research (the `deep-research` skill / WebSearch) for external library/protocol semantics.
-2. **Research destination Y.** Map what Y *already provides* — its crates, public capabilities, and the
-   substrates it's built on (`hf`/`weave`/`grit`/`icm`). The goal: a **reuse map** — for each X
-   capability, does Y already have it (map-onto), partially have it (extend), or lack it (port fresh)?
-   This is what stops the merge from duplicating Y's existing code (the no-downgrade directive's
-   "a duplicate is an incomplete unification" applies).
-3. **Surface decisions, not guesses.** Where research is inconclusive (X's behavior ambiguous, Y's
+2. **Research destination Y → classify every unit.** Map what Y *already provides* — its crates, public
+   capabilities, and the substrates it's built on (`hf`/`weave`/`grit`/`icm`). Emit, for **each unit**, a
+   **class** the architect records on the merge ledger (this is what drives ITERATE and stops the loop
+   re-porting what Y has): `port-fresh` (Y lacks it), `extend-Y` (Y partial), `reuse-Y` (Y provides it
+   **fully** → verify-only, skip the port), or `map-onto-substrate` (a runtime construct Y delegates to a
+   substrate). Be conservative: classify `reuse-Y` only on evidence Y's symbol covers the **full**
+   contract — a near-fit is `extend-Y`, never `reuse-Y` (reuse-by-narrowing is a downgrade).
+3. **Flag Y's behavioral baseline targets (for the dual no-downgrade gate).** For each unit's Y blast
+   radius, note Y's *existing* behaviors/tests that the merge must NOT regress — the symbols + test
+   suites the orchestrator captures as Y's golden baseline at DISCOVER and diffs after each merge. The
+   merge protects Y's behavior, not just X's.
+4. **Surface decisions, not guesses.** Where research is inconclusive (X's behavior ambiguous, Y's
    substrate may-or-may-not express a behavior — e.g. ADR-0001's open `hf` parallel-node question),
    record it as an explicit open question routed to the architect/owner, never an assumed answer.
 
@@ -43,8 +49,10 @@ high-stakes verdict to opus rather than guess.
 
 - **Read** source X, destination Y, `parity-ledger.md`/`symbol-map.md`, `target-architecture.md`, and
   external sources (docs/web). Use `git-kb code` across both repos.
-- **Write** `.handoff/loop/reports/research.md`: per-capability X-needs ⟷ Y-provides reuse map, deep
-  behaviors the inventory missed, upstream-library semantics, and open questions (with evidence).
+- **Write** `.handoff/loop/reports/research.md`: per-capability X-needs ⟷ Y-provides reuse map, the
+  **per-unit class** (`port-fresh`/`extend-Y`/`reuse-Y`/`map-onto-substrate`), the **Y-baseline targets**
+  (Y behaviors/tests the merge must not regress), deep behaviors the inventory missed, upstream-library
+  semantics, and open questions (with evidence).
 - **Return** the reuse map summary + the top decisions/open questions for the architect.
 
 ## Error handling

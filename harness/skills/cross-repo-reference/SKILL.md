@@ -55,3 +55,10 @@ grit lock scope`. Plus a refreshed delta per merge cycle (only the touched symbo
   "no references" — a fake-empty graph would green-light a breaking merge.
 - **Collect mechanically, escalate judgment** — gather and structure the graph (cheap/mechanical); the
   reconciliation *decision* (which symbol absorbs which) belongs to the merge-integrator.
+- **Feed the dual no-downgrade gate.** The Y-side blast radius you compute is also the set of Y behaviors
+  the merge must not regress — surface it so the orchestrator captures Y's golden baseline for those
+  symbols at DISCOVER and diffs after each merge. A breaking contract is **flagged here, resolved by the
+  merge-integrator** (additive / shim / versioned bump via protocol-drift) — never silently shipped.
+- **Y-drift re-check.** Y's base advances during a multi-session merge. On resume / per cycle, after Y is
+  fetched+rebased, **re-run over the *merged* set** — any merged unit whose Y blast-radius changed is
+  surfaced so it re-verifies (a merge proven against an old Y isn't proven against the new Y).

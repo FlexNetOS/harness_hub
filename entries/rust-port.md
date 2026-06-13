@@ -32,11 +32,14 @@ merged into `harness-agent-rs`.
 4. **Differential parity proof** (`rust-port-parity-verifier`) — runs source and Rust over the same
    inputs (all branches) and diffs outputs/side-effects/errors. Only a behavioral `PASS` flips a unit
    to verified. The compile is a precondition, not the verdict.
-5. **Merge into Y, no downgrade across the move** (`rust-port-merge-integrator`, when a destination
-   repo is set) — each verified unit lands in Y (new module / merge-into-existing / map-onto a Y
-   substrate `hf`/`weave`/`grit`/`icm`), symbol-locked via grit, reuse>duplicate but never
-   reuse-by-narrowing, then **re-parity-verified in Y's context**. The `rust-port-researcher` (reuse
-   map of what Y provides) and `rust-port-cross-repo-referencer` (blast-radius/contract map) feed it.
+5. **Merge into Y — bidirectional no-downgrade** (`rust-port-merge-integrator`, when a destination repo
+   is set) — units are classified up-front (`port-fresh`/`extend-Y`/`reuse-Y`/`map-onto-substrate`) so
+   the loop never re-ports what Y already provides; each lands in Y (new module / merge-into-existing /
+   map-onto a substrate), symbol-locked via grit, in a **per-task Y worktree + feature branch**
+   (atomic — commit iff it passes, else `reset --hard`). The gate is **bidirectional**: the merge must
+   still match source X **and not regress Y's own behavior** (a Y-regression diff vs Y's captured
+   baseline). Y-drift is reconciled on resume (rebase + re-verify drifted units); breaking contracts are
+   **resolved** (shim/adapter/version), not just flagged; merge-DONE opens a **PR into Y with auto-merge**.
 6. **DONE gate** — left-behind sweep clean **at both grains** (no unmapped unit AND no unmapped
    symbol; every `- [x]` unit has 100% verified symbols) + every unit and **every symbol** verified
    (or an explicit, owner-approved `- [≠]` divergence) + `cargo build`/`clippy`/`test` green **+ (when

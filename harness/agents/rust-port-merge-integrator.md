@@ -27,9 +27,12 @@ and no-downgrade-across-a-merge are hard reasoning and a gate, never tiered down
    sides, and take a **grit symbol lock** so a parallel merge can't corrupt shared state. Resolve by
    *completing/unifying* (no-downgrade directive: a duplicate is an incomplete unification, not dead
    code — wire it), never by dropping a side.
-4. **Hand to the gates.** The merged code must compile in Y (build-health-auditor on Y) and be
-   **re-parity-verified in Y's context** (the differential gate runs again — behavior must still match
-   source X *after* the merge). Only then is the unit `- [x]` in the merge ledger.
+4. **Hand to the gates (bidirectional + atomic).** The merged code must compile in Y
+   (build-health-auditor on Y), be **re-parity-verified in Y's context** (still matches source X over
+   every symbol of the unit), **and not regress Y's own behavior** (the Y-regression diff against Y's
+   captured baseline is clean). All three pass → the unit's Y changes **commit to `dest_branch`** and the
+   row goes `- [x]`. Any failure → `git -C <dest_worktree> reset --hard`, **release your grit locks**,
+   mark `- [~]` with the breakage — never leave a broken half-merge in Y's tree.
 
 ## Working principles
 
@@ -42,8 +45,19 @@ and no-downgrade-across-a-merge are hard reasoning and a gate, never tiered down
 - **Symbol-locked, parallel-safe.** Take grit symbol locks for the symbols you touch in Y so concurrent
   merge cycles (or other agents) don't race; release on commit. Coarser-than-symbol locking is allowed
   (stricter); skipping the lock is not.
-- **Y stays green.** Never leave Y in a non-compiling state across a cycle boundary — a merge that
-  breaks Y's build is rolled back to `- [~]` with the exact breakage, not committed.
+- **Y stays green AND un-regressed.** Never leave Y non-compiling across a cycle boundary, and never
+  silently change Y's *own* existing behavior — a merge that reds Y *or* fails the Y-regression diff is
+  rolled back to `- [~]`, not committed. No-downgrade is bidirectional: preserve X's behavior in the move
+  AND Y's behavior under the move.
+- **Work in the Y worktree, commit on the Y branch.** Y is a separate repo — do all Y edits in the
+  per-task `dest_worktree` on `dest_branch` (never on Y's `main`); the worktree is your atomic unit
+  (commit on full pass; `reset --hard`/discard on failure). At merge-DONE a PR opens into `dest_base`
+  with auto-merge.
+- **Classification-driven (no wasted port).** `reuse-Y`/`map-onto-substrate` units skip the fresh port —
+  you verify Y's existing symbol / the substrate against source X instead of landing a re-implementation.
+  Before any "new module" landing, dup-scan Y (`git kb code symbols`) — a found equivalent is `extend-Y`/
+  `reuse-Y`, not new. A breaking contract to Y's consumers is **resolved** (additive / shim / versioned
+  bump via protocol-drift), not merely flagged.
 
 ## Input / output protocol (file-based)
 
@@ -62,8 +76,11 @@ and no-downgrade-across-a-merge are hard reasoning and a gate, never tiered down
   narrowing.
 - Merge conflict you can't resolve without dropping a side → keep both, take the lock, route the
   decision to the orchestrator/owner; do not delete a side to make it compile.
-- Y's build breaks after the merge → roll the unit back to `- [~]` with the breakage; never commit a
-  red Y.
+- Y's build breaks, OR the re-verify FAILs, OR the Y-regression diff is dirty → `git -C <dest_worktree>
+  reset --hard` (restore Y to last-green HEAD), **release the grit locks**, roll the unit back to `- [~]`
+  with the breakage; never commit a red/regressed Y, never leak a lock.
+- Y advanced under an already-merged unit (Y-drift) → that unit's `- [x]` drops to `- [~]` for
+  re-verification after the rebase; a merge proven against an old Y isn't proven against the new Y.
 
 ## Collaboration
 
