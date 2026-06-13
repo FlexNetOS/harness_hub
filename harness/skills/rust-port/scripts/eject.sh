@@ -11,7 +11,7 @@ TARGET="${1:-}"
 TARGET="$(cd "$TARGET" && pwd)"
 PLUGIN="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"  # harness/
 
-SKILLS=(rust-port rust-port-inventory rust-port-translate rust-port-parity rust-port-merge cross-repo-reference session-relay-wrap-up session-relay-resume cross-repo-health harness-loop-init harness-evolution)
+SKILLS=(rust-port rust-port-inventory rust-port-translate rust-port-parity rust-port-merge cross-repo-reference icm-memory session-relay-wrap-up session-relay-resume cross-repo-health harness-loop-init harness-evolution)
 AGENTS=(rust-port-cartographer rust-port-architect rust-port-porter rust-port-parity-verifier \
         rust-port-merge-integrator rust-port-researcher rust-port-cross-repo-referencer \
         build-health-auditor continuity-steward evolution-steward)
