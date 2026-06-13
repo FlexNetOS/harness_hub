@@ -1,71 +1,59 @@
-# HANDOFF — harness_hub session (harness development)
+# HANDOFF — harness_hub (rust-port harness development)
 
-> Session boundary for the harness-development work in `harness_hub`. A fresh session reads this and
-> continues the agreed plan. The committed file is the authoritative resume signal; weave is the
-> heartbeat. (Supersedes the earlier rust-port kickoff — that port now lives in `harness-agent-rs`.)
+> Session boundary for harness-development work in `harness_hub`. A fresh session reads this and
+> continues. The committed file is the authoritative resume signal; weave is the heartbeat.
+> (Supersedes the prior code-research-oh-my-pi → rust-port-DISCOVER kickoff — the rust-port harness is
+> now built and released; the work has moved to *using* it.)
 
-closed_utc: 2026-06-13
-repo: harness_hub
-branch: develop
-resume_command: /session-relay-resume from .handoff/loop/HANDOFF.md
+closed_utc: 2026-06-13        branch: develop (released to master)     worktree: ~/Desktop/meta/harness_hub
+orchestrator_phase: harness-development (not a parity loop — cycle/gate fields n/a)
+last_item: release #28 (develop → master)   next_item: USE the harness (envctl kasetto-verify; Archon port)
+gate_status: n/a   pr_url: https://github.com/FlexNetOS/harness_hub/pull/28 (merged)
 
 ## Where things stand
 
-The packaged-harness library is mature. `harness_hub` catalog = **7 entries**; the `harness` plugin is
-**factory + library** (`/harness:harness` builds; `/harness:<name>` runs). Shipped this session:
-`code-research` harness, the Archon code-research verdict, **ADR-0001 (harness-agent-rs)**, the new
-**`FlexNetOS/harness-agent-rs`** repo (scaffold + rust-port harness ejected + port kickoff, registered
-in meta `.meta.yaml`), and the continuity primitives `session-relay-wrap-up`/`-resume` +
-`harness-loop-init`. Tree clean on `develop`.
+The **rust-port packaged harness is mature and RELEASED to `master` at plugin v1.10.1.** It is now a
+full-feature, no-downgrade **port-and-merge** harness: 10 agents, 12 skills, 3-model tiered
+(opus gates / sonnet workers / haiku mechanical), two-layer ICM memory, ejectable. Tree clean.
 
-**Decision of record (ADR-0001):** Archon **is** an agent-harness manager (DAG workflow-run
-orchestrator over external agent SDKs; delegates the LLM loop). Build `harness-agent-rs` by porting
-Archon's runtime *design* + mapping subsystems onto `hf`/`weave`/`grit`/`icm`; keep the markdown
-builder as-is; **port the current v0.4.x architecture only** (Archon has 3 uncleaned legacy versions).
+landed_this_session (all auto-merged to develop, then promoted via release #28 → master):
+  - #21 detailed **symbol mapping** (per-symbol map + rollup + two-grain sweep) + agent-runtime porting + per-agent runtime contract table  (v1.6.0→1.7.0)
+  - #22 `/verify` bug fix **`git kb index` → `git kb code index`** (would wall every port at DISCOVER) + symbol-map sharding + Y-runnable baseline  (→1.7.1)
+  - #24 **port-and-MERGE arc** (ADR-0001 `rust-port→rust-port-merge`) + research/cross-repo agents + automated **3-model workflow**  (→1.8.0)
+  - #25 **merge hardening** — 9 gaps incl. **bidirectional no-downgrade** (don't regress Y), Y worktree/branch/PR, atomic rollback, up-front reuse-classification, Y-drift  (→1.9.0)
+  - #26 shared **`icm-memory` skill** (recall/store as needed — runtime-delegated, NOT hard-wired hooks)  (→1.10.0)
+  - #27 eject prints a **`SessionStart` recall-hook** (deterministic pre-session priming)  (→1.10.1)
 
-## NEXT — do these in order (owner-sequenced)
+## NEXT — the work has moved to USING the harness (owner is driving)
 
-### ▶ STEP 1 (do FIRST): code-research `oh-my-pi`  — close ADR-0001's open fork
-Run **`/harness:code-research`** against `~/Desktop/meta/oh-my-pi`, question:
-*"Does oh-my-pi provide the agent run-loop / IDE layer that Archon delegates to provider SDKs — and
-should harness-agent-rs reuse/merge it, or build the loop fresh?"*
-- Why first: ADR-0001 delegated the agent loop to provider CLIs but flagged that oh-my-pi (a Rust/Bun
-  coding-agent runtime) may already supply that loop. This is the one unverified assumption that could
-  change the port's shape — settle it with evidence **before** committing port effort.
-- Output: a decision-grade verdict + a recommendation (reuse oh-my-pi's loop / merge / build fresh),
-  feeding a short addendum to ADR-0001.
+### ▶ envctl — kasetto→envctl merge AUDIT (owner is doing this now: "i got it from here")
+Use the harness in **verify mode** to confirm the existing kasetto rust merge in envctl was done right.
+- Eject: `bash ~/Desktop/meta/harness_hub/harness/skills/rust-port/scripts/eject.sh ~/Desktop/meta/envctl`
+- Seed `envctl/.handoff/loop/loop_state.md`: `source_root=~/Desktop/meta/kasetto` (Rust, `source_toolchain=cargo`),
+  `rust_target`/`dest_repo`=envctl (kasetto referenced in `crates/engine/src/{runtime,lock}.rs` + `cli/main.rs`).
+- Mode: every unit classifies **`reuse-Y`** (already in envctl) → skip porting → **differentially verify
+  envctl-against-kasetto** + two-grain left-behind sweep + the dual gate (kasetto preserved AND envctl not regressed).
+- Run: `/rust-port` (DISCOVER → audit) or the SAFE runner `ralph-rust-port.sh`.
 
-### ▶ STEP 2 (then): `/rust-port` DISCOVER in `harness-agent-rs`
-In a **fresh worktree off `harness-agent-rs` main**, run **`/rust-port`** (its kickoff is committed at
-`harness-agent-rs/.handoff/loop/HANDOFF.md`):
-- DISCOVER step 1 = **cartographer disambiguates current-vs-legacy** Archon (3 old versions OUT of
-  scope) → parity ledger over the v0.4.x runtime.
-- architect → crate layout + the substrate-mapping table (ledger→hf, coord→weave+grit, memory→icm,
-  agent-loop per STEP 1's verdict).
-- Then ITERATE one unit/cycle (full port → build/clippy → differential parity-verify → commit).
+### ▶ harness-agent-rs — Archon → Rust port (PENDING)
+- harness-agent-rs has a **STALE ejected harness** (8 skills, pre-merge) + a committed kickoff
+  (`harness-agent-rs/.handoff/loop/HANDOFF.md`). **Re-eject v1.10.1 first** (gains merge/cross-repo/
+  3-model/icm-memory) before running.
+- source=`~/Desktop/meta/Archon` (TS/Bun, **current v0.4.x only**, exclude 3 legacy versions), rust_target=harness-agent-rs.
+- **Prereq (ADR-0001):** a `/harness:code-research` pass on `~/Desktop/meta/oh-my-pi` to settle whether it
+  supplies the agent run-loop Archon delegates — resolve before locking the loop strategy.
 
-## Landed this session (pointers)
-- harness_hub PRs: #14 (code-research harness), #16 (ADR-0001), this PR (harness-loop-init + handoff),
-  plus earlier #3/#5/#7/#8/#9/#10/#11/#12/#13.
-- New repo: github.com/FlexNetOS/harness-agent-rs (main, scaffold + ejected rust-port + kickoff).
-- meta PR #30: registered harness-agent-rs in `.meta.yaml` + `.gitignore`.
+decisions_and_dead_ends:
+  - Capability = a runtime-delegated **skill**, never forced per-agent hooks (owner: hooks reduce agent ability; lead delegates at runtime).
+  - **Pre-session recall hooks > stop hooks** (a missed recall blinds the whole session; a missed store loses one recoverable fact).
+  - Don't over-ask scoping / don't over-engineer (owner corrected twice) — make the harness flexible, let runtime delegation drive.
+  - 3-model tiering is safe because every no-downgrade **gate stays opus** (a tiered worker's downgrade is caught by the opus parity gate).
 
-## ICM / continuity pointers
-- Recall first (session-relay-resume does this): `icm recall-context "harness-agent-rs Archon oh-my-pi" --limit 5`;
-  `icm recall "Archon verdict" -t decisions-harness_hub`; `icm recall "" -t decisions-harness_hub` (ADR-0001).
-- Authoritative docs: `docs/adr/0001-harness-agent-rs.md`; `entries/code-research.md`,
-  `entries/rust-port.md`; `harness-agent-rs/.handoff/loop/HANDOFF.md` (the port kickoff).
-
-## Verify-on-resume baseline
+icm_stored: `decisions-harness_hub`, `preferences` (capability-as-skill), `errors-resolved` (git kb code index), `context-harness_hub` (this wrap)
+findings: none in `.handoff/loop/findings/` (harness-dev session; per-PR evidence is in the merged PRs + `harness/LESSONS.md`)
+verify_on_resume:
 ```bash
-cd ~/Desktop/meta/harness_hub && bash scripts/validate.sh        # catalog green (7 entries)
-cargo build --quiet --manifest-path ~/Desktop/meta/harness-agent-rs/Cargo.toml  # skeleton builds
-command -v bun >/dev/null && echo "bun on PATH"  # needed by code-research (run oh-my-pi) + rust-port parity
+cd ~/Desktop/meta/harness_hub && bash scripts/validate.sh          # expect: ✓ 7 entries valid
+git show origin/master:harness/.claude-plugin/plugin.json | grep version   # expect: 1.10.1
 ```
-
-## Decisions & dead-ends (don't re-litigate)
-- Archon's label was contested (workflow-engine vs manager) — RESOLVED by the verifier: it's an agent
-  *harness manager* that delegates the loop. Don't reopen.
-- harness-agent-rs is named for the goal (not `archon-rs`): it ports Archon's design AND maps onto the
-  substrates — not a 1:1 clone.
-- Unattended-apply for the ralph runners stays SAFE-only unless the owner adds a settings Bash rule.
+resume_command: /session-relay-resume from .handoff/loop/HANDOFF.md
