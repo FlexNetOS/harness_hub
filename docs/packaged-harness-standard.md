@@ -67,6 +67,18 @@ writes+commits `HANDOFF.md` → weave heartbeat → cron → stop. Resume = **IC
 scan → read committed `HANDOFF.md` → verify-on-resume (fail-closed) → `relay:resumed` → reset → loop.
 The committed `HANDOFF.md` (or `hf` packet) is always authoritative; weave is only the heartbeat.
 
+**Continuous autonomous cadence (the budget is context, not questions):** a loop harness runs the
+**plan → implement → test → commit/PR (auto-merge) → checkpoint → next item** cycle *continuously*,
+selecting the next item itself from the backlog/packet. It does **not** stop to ask the owner
+between items when the backlog and the goal/vision are known — the per-task stop-and-ask cadence is
+a defect, not a checkpoint. The loop budget is **~50% of the context window** (not a fixed cycle
+count): keep shipping until ~50% is consumed, *then* run wrap-up/HAND OFF (leaving headroom to
+checkpoint cleanly). The only sanctioned stops are **genuine walls** — irreversible/destructive ops,
+daemon/secret boundaries, or a true owner-judgment fork — and even there the harness prefers to
+record `NEEDS-HUMAN` and advance to the *next* item rather than halt the loop. Non-blocking decisions
+are batched and surfaced at wrap-up, never mid-loop. (This preserves every gate and wall; it only
+removes idle question-gating between items.)
+
 ## The seven steps to add a harness (the factory follows these)
 
 1. **Triage scope.** Is it a harness (agent runtime / toolkit / skills-framework / orchestrator)?
