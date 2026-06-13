@@ -27,6 +27,27 @@ transliteration (no `unwrap()` ladders, no god-enums) and not a downgrade (no dr
 | Serialization | `serde` (derive); preserve exact wire/JSON shape and field names (parity). |
 | Dynamic (decorators, monkey-patch, reflection) | macros, trait objects, or explicit registration — reproduce the *effect*, not the mechanism. |
 
+## Agent-runtime & orchestration constructs (idiom map; no-downgrade)
+
+Runtime/orchestration constructs (DAG executors, run-loops, provider-over-CLI abstractions, gates,
+cancellation, streaming) are where naive ports silently downgrade — collapsing parallel→sequential,
+streaming→one-shot, cancellable→uninterruptible. They port like everything else: **behavior matches,
+form modernizes, no branch dropped.** Some are also *mapped onto* a substrate instead of reimplemented
+(see `rust-port/references/runtime-constructs.md` — that decision is the architect's; mapping must
+preserve every behavior).
+
+| Source construct | Idiomatic Rust (no-downgrade) |
+|------------------|-------------------------------|
+| DAG / workflow state machine | typed state enum + executor over Kahn topological **layers** (`petgraph` or hand-rolled); parallel layers stay **parallel** (collapsing to sequential is a downgrade). |
+| Run-loop / loop-until-signal | `tokio` task + bounded retries + an explicit stop **signal** (`CancellationToken` / `watch`); the loop's termination condition ports exactly — no unbounded or off-by-one re-prompt. |
+| Human-approval / pause gate | awaitable gate (`oneshot`/`Notify`) **+ persisted run state** so a pause survives restart; never auto-approve to "keep moving". |
+| Provider abstraction over external agent CLIs | `trait` (+ `enum` dispatch over variants) + subprocess mgmt: stdin/stdout **streaming** (`tokio::process` + `BufReader.lines()`), binary resolution (`which`), auth env passthrough. Every provider variant + capability flag ports — dropping one is a downgrade. |
+| Fresh-vs-shared context | **explicit** context passing (own value vs `Arc<_>`); the fresh/shared choice is contractual — don't quietly share or quietly clone. |
+| Concurrency / parallel fan-out | `tokio::JoinSet` / structured concurrency; preserve the source's concurrency **degree** and any ordering guarantee on results. |
+| Cancellation / timeout | `tokio_util::sync::CancellationToken` + `tokio::time::timeout`; every cancellable/abortable path in the source is cancellable in Rust (cancellation is a behavior, not a nicety). |
+| Backpressure / streaming events | `futures::Stream` / bounded `mpsc` channel; preserve push **timing**, ordering, and the bound (an unbounded rewrite that drops backpressure is a downgrade). |
+| Graceful shutdown / signals | `tokio::signal` + drain (finish in-flight, flush ledger, then exit); SIGTERM/SIGINT handling and the drain order port exactly. |
+
 ## Dependency equivalents (record in the dep table; missing ≠ drop)
 
 Map each source lib to a Rust crate (e.g. express→axum, fastapi→axum, prisma/sequelize→sqlx/sea-orm,
@@ -41,6 +62,7 @@ is the architect's; the porter applies it.
   are downgrades — leave the ledger row `- [~]` with what's missing instead of a fake `- [x]`.
 - **Behavior matches, form modernizes.** Observable behavior (outputs, error kinds, side-effect
   timing, ordering where contractual) equals the source; the *expression* is idiomatic Rust.
-- **Capability parity.** Streaming stays streaming; concurrency stays concurrent; hot-reload/plugin
+- **Capability parity.** Streaming stays streaming; concurrency stays concurrent; cancellation stays
+  cancellable; parallel DAG layers stay parallel; pause/approval gates stay durable; hot-reload/plugin
   systems are designed in, not cut. Deliberate cuts are `- [≠]` rows with owner approval only.
 - **Write the behavior tests** alongside the code — they become the parity fixtures.

@@ -18,13 +18,34 @@ it will be silently dropped; your job is to make that impossible.
    background jobs, side effects (filesystem/network/DB), and observable behaviors documented in
    READMEs/tests. Capture the *contract* of each (inputs, outputs, side effects, error cases) —
    not just its name.
-2. **Parity ledger.** Write `.handoff/loop/parity-ledger.md`: one row per unit →
+   - **Runtime/orchestration dimension (first-class, not an afterthought).** For runtime constructs
+     (DAG/workflow executors, run-loops, provider abstractions, gates), inventory the *runtime
+     guarantees* as their own rows: concurrency degree (which layers run in parallel), result
+     ordering, cancellation/abort points, timeouts, backpressure/stream bounds, run-isolation
+     boundary, pause/approval gate state, and signal/graceful-shutdown handling. These are exactly
+     what a naive port collapses (parallel→sequential, streaming→one-shot, cancellable→stuck), so
+     each is a contracted ledger row the parity-verifier must exercise.
+2. **Parity ledger (units).** Write `.handoff/loop/parity-ledger.md`: one row per unit →
    `id · source-path:symbol · contract summary · rust-target · status`. Status legend:
    `- [ ]` not ported · `- [~] ported, parity unproven` · `- [x] ported + parity-verified` ·
    `- [!] blocked: <reason>` · `- [≠] intentional-divergence: <reason+approval>`.
-3. **Left-behind sweep (pre-DONE).** Re-scan the source and diff against the ledger. ANY source
-   unit not in the ledger, or any `- [ ]`/`- [~]` remaining, blocks DONE. This is the completeness
-   critic — assume you missed something and go find it.
+3. **Symbol map (symbols — the finer grain).** Write `.handoff/loop/symbol-map.md`: **one row per
+   source symbol** (exported/public fn, type, method, field, const, enum variant, trait, CLI flag,
+   HTTP route), each `unit:`-tagged to its ledger row, same status legend (schema:
+   `rust-port/references/symbol-map.md`). Harvest the symbol set **deterministically from the
+   AST/index, never grep** — `git kb index <source_root>` then
+   `git kb code symbols --file <f> --json --limit -1` (no cap; JSON is the stable shape); routes/CLI
+   flags come from the route table / CLI definition. Apply the row-eligible visibility filter to both
+   the map and the denominator (record it in `reports/inventory.md`). This is what makes a dropped
+   method/field/variant/route *inside* a ported unit impossible to hide.
+4. **Left-behind sweep (pre-DONE), at two grains.** Re-scan the source and diff against the *unit*
+   ledger — ANY source unit not in the ledger, or any `- [ ]`/`- [~]` unit, blocks DONE. Then
+   **re-harvest the full source *symbol* set** (same visibility filter) and diff against
+   `symbol-map.md` — ANY source symbol with no row, any `- [ ]`/`- [~]`/`- [!]` symbol, **or any
+   `- [x]` unit whose symbols are not all `- [x]`/`- [≠]` (rollup violation)** also blocks DONE. A
+   zero/empty symbol harvest of a non-empty source is INCONCLUSIVE → write `.handoff/loop/NEEDS-HUMAN`,
+   never read it as "clean". This is the completeness critic at both grains — assume you missed
+   something and go find it.
 
 ## Working principles
 
@@ -34,14 +55,18 @@ it will be silently dropped; your job is to make that impossible.
   packages/x,y; packages/z DEFERRED") as `- [ ]` sweep items so partial coverage can't read as complete.
 - **Source is truth.** When docs and code disagree, the code's behavior wins; note the discrepancy.
 - **Edge cases are units too.** Error handling, empty/null inputs, concurrency, ordering guarantees,
-  and platform quirks each get a ledger row — these are the first things a naive port drops.
+  cancellation/timeout points, backpressure bounds, run-isolation, and platform quirks each get a
+  ledger row — these are the first things a naive port drops. For runtime constructs, a unit's
+  *concurrency/cancellation/streaming contract* is part of its row, not optional metadata.
 
 ## Input / output protocol (file-based)
 
 - **Read** the source root (provided by the orchestrator) and any prior `.handoff/loop/parity-ledger.md`.
-- **Write** `.handoff/loop/parity-ledger.md` (authoritative) and `.handoff/loop/reports/inventory.md`
-  (coverage summary: counts by status, deferred areas).
-- **Return** a terse summary: total units, ported/verified/remaining counts, and any coverage gaps.
+- **Write** `.handoff/loop/parity-ledger.md` (authoritative units), `.handoff/loop/symbol-map.md`
+  (authoritative symbols, `unit:`-tagged) and `.handoff/loop/reports/inventory.md` (coverage at both
+  grains: counts by status, symbols X/Y, harvest method + visibility filter, deferred areas).
+- **Return** a terse summary: total units + **total symbols**, ported/verified/remaining counts at
+  both grains, and any coverage gaps (unmapped symbols, rollup violations).
 
 ## Error handling
 
@@ -56,6 +81,7 @@ it will be silently dropped; your job is to make that impossible.
 
 ## When previous output exists
 
-If `.handoff/loop/parity-ledger.md` exists, refresh it incrementally — re-scan for source units added
-since, preserve existing statuses, and report the delta. Never regenerate from scratch (it would
-lose verification state).
+If `.handoff/loop/parity-ledger.md` / `symbol-map.md` exist, refresh both incrementally — re-harvest
+for source units AND symbols added since, preserve existing statuses (both grains), and report the
+delta. Never regenerate from scratch (it would lose verification state). A symbol that disappeared
+from the source is not silently deleted — confirm it was genuinely removed (not a harvest miss).
