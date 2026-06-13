@@ -14,7 +14,7 @@ TARGET="$(cd "$TARGET" && pwd)"
 # PLUGIN root = harness/ (three levels up from this script: skills/meta-plugin/scripts/)
 PLUGIN="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 
-SKILLS=(meta-plugin session-relay hub-registry-sync cross-repo-health protocol-drift-scan harness-evolution)
+SKILLS=(meta-plugin session-relay-wrap-up session-relay-resume hub-registry-sync cross-repo-health protocol-drift-scan harness-evolution)
 AGENTS=(build-health-auditor integration-qa continuity-steward evolution-steward \
         meta-plugin-registry-curator meta-plugin-protocol-drift-analyst)
 
