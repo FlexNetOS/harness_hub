@@ -66,18 +66,20 @@ All `Agent` calls use `model: "opus"`.
 | `meta-plugin-protocol-drift-analyst` | protocol↔consumer contract drift | general-purpose |
 | `integration-qa` | cross-boundary verification before each commit | general-purpose |
 | `continuity-steward` | writes the cold-start HANDOFF.md at budget | general-purpose |
+| `evolution-steward` | evaluates each run, mines lessons, upgrades the harness (runs last) | general-purpose |
 
 Specialists use the matching skills: `cross-repo-health`, `hub-registry-sync`,
-`protocol-drift-scan`. QA and steward use cross-boundary verification and `session-relay`.
+`protocol-drift-scan`. QA and stewards use cross-boundary verification, `session-relay-wrap-up`,
+`session-relay-resume`, and `harness-evolution`.
 
 ## Phase 0: Context check (initial / resume / partial re-run)
 
 Decide the mode **first**, from `.handoff/loop/` state and the user's phrasing:
 
 - `.handoff/loop/HANDOFF.md` exists **and** user says resume/continue/pick-up → **RESUME**: invoke
-  `session-relay` RESUME (read the committed HANDOFF.md — authoritative — run its verify-on-resume
-  baseline, broadcast `relay:resumed`, reset `cycles_this_session=0`), then continue at the
-  backlog's current item.
+  `session-relay-resume` (ICM recall → weave inbox scan → read the committed HANDOFF.md —
+  authoritative — run its verify-on-resume baseline fail-closed → broadcast `relay:resumed` → reset
+  `cycles_this_session=0`), then continue at the backlog's current item.
 - `.handoff/loop/` exists **and** user asks to redo only one pass (e.g. "redo the drift scan") →
   **PARTIAL RE-RUN**: re-invoke only that specialist; do not touch other findings.
 - `.handoff/loop/` exists **and** user provides genuinely new input/scope → **NEW RUN**: move the old
@@ -127,9 +129,21 @@ Repeat until a stop condition. Each cycle:
 
 ## Phase 3: HAND OFF (at cycle budget)
 
-Invoke `session-relay` HAND OFF: spawn `continuity-steward` to write+commit
-`.handoff/loop/HANDOFF.md`, broadcast the weave `relay:handoff` heartbeat (`to:"all"`), best-effort
-one-shot cron successor, then **stop** (no further `ScheduleWakeup`).
+Invoke **`session-relay-wrap-up`** — the full wrap-up: stop-checks → Phase E lightweight retro
+(`evolution-steward`) → persist durable memory to ICM → `continuity-steward` writes+commits
+`.handoff/loop/HANDOFF.md` → weave `relay:handoff` heartbeat (`to:"all"`) → best-effort one-shot cron
+successor → **stop** (no `ScheduleWakeup`; prefer `hf checkpoint`/`hf handoff` when reachable). The
+committed HANDOFF.md is the resume signal; a fresh session re-enters via `session-relay-resume`.
+
+## Phase E: Evaluate & evolve (runs last — at DONE and at HAND OFF)
+
+Invoke `evolution-steward` (`model: "opus"`, skill `harness-evolution`). It evaluates the run from
+`.handoff/loop/` artifacts, mines generalizable lessons, appends them to the lessons ledger, and
+**upgrades the harness** — auto-applying only low-risk in-scope edits (via the standard PR flow,
+with a CLAUDE.md change-history row) and writing structural proposals to
+`.handoff/loop/proposed-upgrades.md` for owner approval. It never weakens a gate and only stewards
+this harness (scope law). At HAND OFF do the lightweight version (capture lessons, defer applying);
+at DONE do the full retro.
 
 ## DONE criteria (terminal, evidence-backed)
 
@@ -139,6 +153,8 @@ Write `.handoff/loop/DONE` only when ALL hold, and record the evidence inside it
 - `build-health-auditor` reports GREEN for the in-scope repo set (or every red is an explicit
   `- [!]` with reason);
 - `meta-plugin-protocol-drift-analyst` reports zero unresolved breaking findings.
+
+After writing `DONE`, run **Phase E** (full retro) so the completed run feeds the harness's evolution.
 
 ## Data transfer protocol
 
@@ -194,7 +210,7 @@ harness into `<repo>`":
 
 1. Run `bash scripts/eject.sh <target-repo-dir>` (bundled). It copies this harness's pieces into
    `<target>/.claude/`: the orchestrator skill (`skills/meta-plugin/`), its sub-skills
-   (`session-relay`, `hub-registry-sync`, `cross-repo-health`, `protocol-drift-scan`), and the
+   (`session-relay-wrap-up`, `session-relay-resume`, `hub-registry-sync`, `cross-repo-health`, `protocol-drift-scan`), and the
    agents it uses from the shared pool (`build-health-auditor`, `integration-qa`,
    `continuity-steward`, `meta-plugin-registry-curator`, `meta-plugin-protocol-drift-analyst`).
 2. The script also seeds `<target>/.handoff/loop/` (durable state) and prints the `.gitignore` +
@@ -213,4 +229,4 @@ See `references/eject.md` for the full procedure and the snippets. The eject scr
 - `scripts/loop_state.template.md` — the ledger template.
 - `scripts/eject.sh` — copies this packaged harness into a target repo's `.claude/`.
 - `scripts/ralph-meta-plugin.sh` — the external self-restart runner (the `/new` effect).
-- `session-relay` skill — handoff/resume protocol.
+- `session-relay-wrap-up` / `session-relay-resume` skills — full ICM-integrated handoff/resume protocol.

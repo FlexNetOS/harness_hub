@@ -1,6 +1,6 @@
 {
   "schema": "./registry.schema.json",
-  "version": "0.2.0",
+  "version": "0.6.0",
   "updated": "2026-06-13",
   "org": "FlexNetOS",
   "hub": "harness_hub",
@@ -12,7 +12,12 @@
       "category": "agent-runtime",
       "status": "stable",
       "summary": "A standalone coding agent with the IDE wired in — a TypeScript/Rust/Bun monorepo (omp) with its own TUI, swarm-extension, and agent/ai packages. Not a Claude Code plugin; a coding-agent harness of its own.",
-      "tags": ["coding-agent", "harness", "ide", "tui"],
+      "tags": [
+        "coding-agent",
+        "harness",
+        "ide",
+        "tui"
+      ],
       "runtime": "multi",
       "homepage": "https://omp.sh",
       "license": "MIT",
@@ -30,7 +35,11 @@
       "category": "harness-toolkit",
       "status": "beta",
       "summary": "The harness toolkit/landing vendored in this repo at harness/ (skills, docs, site). Source of the `harness` meta-skill that defines specialized agents and the skills they use.",
-      "tags": ["harness", "skills", "vendored"],
+      "tags": [
+        "harness",
+        "skills",
+        "vendored"
+      ],
       "runtime": "node",
       "homepage": "https://github.com/FlexNetOS/harness",
       "forked": true,
@@ -46,12 +55,103 @@
       "category": "orchestrator",
       "status": "beta",
       "summary": "First packaged harness shipped by the harness plugin. An autonomous, resumable, self-restarting Ralph loop (/harness:meta-plugin) that organizes the FlexNetOS meta workspace via harness_hub/meta-plugins/meta_plugin_protocol/meta_plugin_api: hub/registry consistency, cross-repo build/test/lint health, protocol↔consumer drift, and catalog/inventory organization. Run in place or eject into a target repo's .claude/.",
-      "tags": ["harness", "packaged", "ralph-loop", "orchestrator", "repo-organization", "meta-plugin"],
+      "tags": [
+        "harness",
+        "packaged",
+        "ralph-loop",
+        "orchestrator",
+        "repo-organization",
+        "meta-plugin"
+      ],
       "runtime": "multi",
       "hosting": "registry-only",
       "path": "harness/skills/meta-plugin",
       "doc": "entries/meta-plugin.md",
       "notes": "Packaged harness inside the harness plugin (harness/skills/meta-plugin + shared agents in harness/agents/). Invoke /harness:meta-plugin; ejectable via skills/meta-plugin/scripts/eject.sh. Pilot for the packaged-harness convention (docs/packaged-harness-standard.md)."
+    },
+    {
+      "id": "handoff",
+      "displayName": "handoff (continuity kernel)",
+      "category": "orchestrator",
+      "status": "beta",
+      "summary": "FlexNetOS handoff/continuity kernel — the hf binary + .handoff/ witnessed ledger. The only sanctioned cross-session continuity path: checkpoint/handoff packets are rendered from the ledger, never hand-written. Ships the handoff-discipline harness (skills + agents) and fleet coordination.",
+      "tags": [
+        "handoff",
+        "continuity",
+        "orchestrator",
+        "kernel",
+        "ledger",
+        "fleet"
+      ],
+      "runtime": "multi",
+      "homepage": "https://github.com/FlexNetOS/handoff",
+      "hosting": "peer",
+      "repo": "git@github.com:FlexNetOS/handoff.git",
+      "workspaceMember": "handoff",
+      "doc": "entries/handoff.md"
+    },
+    {
+      "id": "weave",
+      "displayName": "weave (agent session mesh)",
+      "category": "orchestrator",
+      "status": "beta",
+      "summary": "Rust-native agent-to-agent session mesh with a native tmux/zellij injector — concurrent coding-agent sessions message each other and push into a running terminal pane (degrades to hook-delivery-on-next-turn with no multiplexer). One static binary; ships an MCP server (weave_send/ask/inbox/…). The workspace's real-time messaging substrate; complements the handoff continuity kernel.",
+      "tags": [
+        "messaging",
+        "mesh",
+        "a2a",
+        "injector",
+        "tmux",
+        "zellij",
+        "mcp"
+      ],
+      "runtime": "rust",
+      "homepage": "https://github.com/FlexNetOS/weave",
+      "hosting": "peer",
+      "repo": "git@github.com:FlexNetOS/weave.git",
+      "workspaceMember": "weave",
+      "doc": "entries/weave.md"
+    },
+    {
+      "id": "rust-port",
+      "displayName": "rust-port (full-parity Rust port loop)",
+      "category": "orchestrator",
+      "status": "beta",
+      "summary": "Packaged harness (/harness:rust-port): an autonomous, resumable Ralph loop that performs a full-feature, NO-DOWNGRADE port of a source project (TypeScript/Python/...) to idiomatic Rust. A parity ledger inventories every source unit; each is ported fully (no stubs), then differentially parity-verified (source vs Rust) before it counts as done. DONE only at 100% with a left-behind sweep — no feature logic left behind.",
+      "tags": [
+        "rust",
+        "port",
+        "migration",
+        "parity",
+        "no-downgrade",
+        "packaged",
+        "ralph-loop"
+      ],
+      "runtime": "multi",
+      "hosting": "registry-only",
+      "path": "harness/skills/rust-port",
+      "notes": "Packaged harness in the harness plugin (harness/skills/rust-port + rust-port-* sub-skills + shared agents/). Invoke /harness:rust-port; ejectable via skills/rust-port/scripts/eject.sh. Flagship use case: full-feature TS->Rust port of meta/Archon.",
+      "doc": "entries/rust-port.md"
+    },
+    {
+      "id": "code-research",
+      "displayName": "code-research (deep code analysis loop)",
+      "category": "orchestrator",
+      "status": "beta",
+      "summary": "Packaged harness (/harness:code-research): an autonomous, resumable, READ-ONLY loop that deeply researches and analyzes a codebase to answer a question with cited, adversarially-verified evidence. Maps the code + decomposes the question into dimensions; fan-out analysts produce file:line-cited claims; an adversarial verifier tries to REFUTE each claim against the source (running it where ambiguous); a synthesizer writes a decision-grade report (verdict-first, confidence-rated, gaps named). Conclusions are earned by evidence that survived refutation — not plausible guesses.",
+      "tags": [
+        "research",
+        "code-analysis",
+        "architecture",
+        "adversarial-verify",
+        "packaged",
+        "read-only"
+      ],
+      "runtime": "multi",
+      "hosting": "registry-only",
+      "path": "harness/skills/code-research",
+      "notes": "Packaged harness in the harness plugin (harness/skills/code-research + code-research-* sub-skills + shared agents). Invoke /harness:code-research; ejectable. Read-only: maps a codebase, fan-out analysts produce cited claims, adversarial verifier refutes claims vs code, synthesizer writes a decision-grade report.",
+      "doc": "entries/code-research.md"
     }
   ]
 }
