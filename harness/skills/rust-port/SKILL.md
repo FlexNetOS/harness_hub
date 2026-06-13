@@ -50,13 +50,14 @@ All `Agent` calls use `model: "opus"`.
 | `evolution-steward` | evaluates each run, mines lessons, upgrades the harness (runs last) | shared |
 
 Skills: `rust-port-inventory`, `rust-port-translate`, `rust-port-parity`, `cross-repo-health`,
-`session-relay`, `harness-evolution`.
+`session-relay-wrap-up`, `session-relay-resume`, `harness-evolution`.
 
 ## Phase 0: Context check (initial / resume / partial)
 
-- `.handoff/loop/HANDOFF.md` exists + user says resume/continue → **RESUME** via `session-relay`
-  (read committed HANDOFF, run verify-on-resume baseline, reset `cycles_this_session=0`), continue
-  at the ledger's next `- [ ]`/`- [~]` unit.
+- `.handoff/loop/HANDOFF.md` exists + user says resume/continue → **RESUME** via
+  `session-relay-resume` (ICM recall → weave inbox scan → read committed HANDOFF → verify-on-resume
+  baseline, fail-closed → broadcast `relay:resumed` → reset `cycles_this_session=0`), continue at the
+  ledger's next `- [ ]`/`- [~]` unit.
 - `.handoff/loop/` exists + user asks to redo one unit/phase → **PARTIAL**: re-run only that unit.
 - `.handoff/loop/` exists + new source/scope → **NEW RUN**: move old to `.handoff/loop_prev/`.
 - absent → **INITIAL**.
@@ -89,9 +90,11 @@ crate/dir**. Ask once if not given; record both in `loop_state.md`.
 
 ## Phase 3: HAND OFF (at budget)
 
-First run **Phase E** (lightweight retro) so the budget boundary doesn't lose lessons. Then
-`session-relay` HAND OFF: `continuity-steward` writes+commits `.handoff/loop/HANDOFF.md`, weave
-`relay:handoff` heartbeat, then stop. (Prefer `hf` verbs when the handoff kernel is reachable.)
+Invoke **`session-relay-wrap-up`** — the full wrap-up: stop-checks → Phase E lightweight retro
+(`evolution-steward`) → persist durable memory to ICM → `continuity-steward` writes+commits
+`.handoff/loop/HANDOFF.md` → weave `relay:handoff` heartbeat → best-effort cron successor → stop
+(prefer `hf checkpoint`/`hf handoff` when the kernel is reachable). The committed HANDOFF.md is the
+resume signal; a fresh session re-enters via `session-relay-resume`.
 
 ## Phase E: Evaluate & evolve (runs last — at DONE and at HAND OFF)
 

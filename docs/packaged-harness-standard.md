@@ -60,6 +60,13 @@ that runs last (at DONE and HAND OFF). It evaluates the run, mines generalizable
 PR flow + a change-history row), proposing structural changes for owner approval, and **never
 weakening a gate**. This is how a harness improves itself run over run (automates Phase 7).
 
+**Continuity (session boundaries):** a loop harness uses the shared `session-relay-wrap-up` and
+`session-relay-resume` skills (the full, ICM-integrated form) — or the lighter `session-relay` — for
+HAND OFF / RESUME. Wrap-up = stop-checks → Phase E retro → **ICM store** → `continuity-steward`
+writes+commits `HANDOFF.md` → weave heartbeat → cron → stop. Resume = **ICM recall** → weave inbox
+scan → read committed `HANDOFF.md` → verify-on-resume (fail-closed) → `relay:resumed` → reset → loop.
+The committed `HANDOFF.md` (or `hf` packet) is always authoritative; weave is only the heartbeat.
+
 ## The seven steps to add a harness (the factory follows these)
 
 1. **Triage scope.** Is it a harness (agent runtime / toolkit / skills-framework / orchestrator)?

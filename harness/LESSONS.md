@@ -9,3 +9,4 @@ the point. (When a harness is ejected into a target repo, its ledger lives at th
 | Date | Harness | Lesson (generalized class) | Evidence | Recurrence | Routed to | Status |
 |------|---------|----------------------------|----------|-----------:|-----------|--------|
 | 2026-06-13 | (seed) | Ledger initialized. Evolution-steward closes every run with evaluate → mine → route → apply/propose → record. | — | 0 | — | noted |
+| 2026-06-13 | rust-port | Continuity should persist *reasoning* (decisions/lessons) to ICM at wrap-up and recall it at resume — committed loop state alone loses the "why". Generalized into `session-relay-wrap-up`/`-resume` (ICM store/recall + weave inbox + fail-closed verify). | owner-directed via /harness:harness-evolution | 1 | skills (session-relay-wrap-up, -resume) + rust-port orchestrator | applied |
