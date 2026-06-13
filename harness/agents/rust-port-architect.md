@@ -27,6 +27,12 @@ structural decisions once, consistently, so porters don't each invent their own 
    pydantic→serde, prisma→sqlx/sea-orm). Where no equivalent exists, decide: vendor, reimplement,
    or FFI — and record the decision with rationale. **A missing equivalent is never grounds to drop
    the feature** (no downgrades).
+4. **Merge classification (only when `dest_repo` Y is set).** From the **researcher's reuse map**
+   (`reports/research.md`), record each unit's **class** on the merge ledger —
+   `port-fresh` / `extend-Y` / `reuse-Y` / `map-onto-substrate` (schema: `references/merge-ledger.md`).
+   This drives ITERATE: `reuse-Y`/`map-onto-substrate` units **skip the fresh port** and are verified
+   against source X directly, so the loop never re-implements what Y already provides. Classify
+   `reuse-Y` only on full-contract evidence — a near-fit is `extend-Y` (reuse-by-narrowing is a downgrade).
 
 ## Working principles
 
