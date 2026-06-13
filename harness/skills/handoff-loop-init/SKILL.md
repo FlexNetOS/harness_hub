@@ -60,7 +60,8 @@ that's wrong. Seed a repo's real work with `hf task mint --from-kb <slug>` or th
 `hf resume` (first command each session) → navigate `active.md` → `context/capsule.json` →
 `packets/latest.md` → `tasks/`/`decisions/`. Claim before editing (`hf claim`), stay in scope,
 `hf checkpoint` + `hf drift` + `hf policy check-handoff` + `hf handoff` before stopping. The
-`handoff-loop` skill drives this loop; `session-relay-resume`/`-wrap-up` integrate it with ICM + weave.
+`handoff-loop-run` skill (or the canonical `handoff-loop` in `meta/handoff`, also vendored at
+`harness_hub/handoff-loop/`) drives this loop; `session-relay-resume`/`-wrap-up` integrate it with ICM + weave.
 
 ## Discipline
 - **Kernel-first, never hand-rolled.** Build via `hf`; if it's not installed, stop (`NEEDS-HUMAN`) —
