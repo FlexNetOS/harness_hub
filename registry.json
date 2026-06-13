@@ -1,6 +1,6 @@
 {
   "schema": "./registry.schema.json",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "updated": "2026-06-13",
   "org": "FlexNetOS",
   "hub": "harness_hub",
@@ -89,6 +89,28 @@
       "repo": "git@github.com:FlexNetOS/handoff.git",
       "workspaceMember": "handoff",
       "doc": "entries/handoff.md"
+    },
+    {
+      "id": "weave",
+      "displayName": "weave (agent session mesh)",
+      "category": "orchestrator",
+      "status": "beta",
+      "summary": "Rust-native agent-to-agent session mesh with a native tmux/zellij injector — concurrent coding-agent sessions message each other and push into a running terminal pane (degrades to hook-delivery-on-next-turn with no multiplexer). One static binary; ships an MCP server (weave_send/ask/inbox/…). The workspace's real-time messaging substrate; complements the handoff continuity kernel.",
+      "tags": [
+        "messaging",
+        "mesh",
+        "a2a",
+        "injector",
+        "tmux",
+        "zellij",
+        "mcp"
+      ],
+      "runtime": "rust",
+      "homepage": "https://github.com/FlexNetOS/weave",
+      "hosting": "peer",
+      "repo": "git@github.com:FlexNetOS/weave.git",
+      "workspaceMember": "weave",
+      "doc": "entries/weave.md"
     }
   ]
 }
