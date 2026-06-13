@@ -93,9 +93,9 @@ it in sync with the agent defs in `harness/agents/` and the per-row contracts th
 | `rust-port-cartographer` | sonnet · **opus** (pre-DONE sweep = gate) | P1 DISCOVER (seed); DONE gate (left-behind sweep) | parallel-capable with `rust-port-architect` at DISCOVER; sequential at the sweep | initial run or new source/scope; and once more pre-DONE | retry once; on 2nd failure → `- [!]` blocked row + continue, never fake coverage; empty symbol harvest of non-empty source → `NEEDS-HUMAN` | source root; prior `parity-ledger.md`/`symbol-map.md` | `parity-ledger.md` + `symbol-map.md` (authoritative), `reports/inventory.md` | **completeness critic** — its two-grain sweep (zero unlisted units/symbols, zero `- [ ]`/`- [~]`, zero rollup violations) is a hard DONE precondition |
 | `rust-port-architect` | opus | P1 DISCOVER (layout); P2 ITERATE (only when a unit needs a new structural decision) | parallel-capable with cartographer at DISCOVER; on-demand, single-flight per unit otherwise | DISCOVER, or a porter/orchestrator structural question | retry once; unresolved equivalent → record options + surface to orchestrator, never pick/drop silently | source root; `parity-ledger.md` | `target-architecture.md` (layout + idiom map + dep table + port-and-map decisions) | advisory — establishes the no-downgrade idiom/dep + reimplement-vs-map-onto mapping the porter must follow; not a pass/fail gate |
 | `rust-port-porter` | sonnet (escalate hard units → opus) | P2 ITERATE (the per-cycle worker) | **sequential, exactly one per cycle** (the one-specialist-per-cycle rule) | a picked unit whose `deps:` are all `- [x]` | retry once; if not finished → unit `- [~]`/`- [!]` + the specific `symbol-map.md` rows `- [ ]`/`- [!]`, never `- [x]` | unit's ledger + symbol rows; `target-architecture.md`; source file; `rust-port-translate` | Rust source + tests in the target crate; unit + symbol rows → `- [~]` | produces the artifact under test; its claim is **never self-certified** (verifier + auditor gate it) |
-| `build-health-auditor` | haiku (per-call override; shared frontmatter stays opus) | P1 DISCOVER (skeleton baseline); P2 ITERATE (post-port compile gate); MERGE (Y green) | sequential, after the porter in a cycle | a freshly ported unit, or the DISCOVER baseline / verify-on-resume | retry once; environmental failure (toolchain/network) → `skip` w/ reason, never silent pass | target repo set; the porter's new code | `findings/health.md`; `baseline.md` | **green-build gate** — `cargo build` + `clippy -D warnings` (+ `test`) must pass; precondition for the parity gate |
+| `build-health-auditor` | haiku (per-call override; shared frontmatter stays opus) | P1 DISCOVER (skeleton baseline); P2 ITERATE (post-port compile gate); MERGE (Y green) | sequential, after the porter in a cycle | a freshly ported unit, or the DISCOVER baseline / verify-on-resume | retry once; environmental failure (toolchain/network) → `skip` w/ reason, never silent pass | target repo set; the porter's new code; (merge) Y + Y's test suite | `findings/health.md`; `baseline.md`; (merge) `findings/y-regression.md` (Y baseline captured at DISCOVER) | **green-build gate** — `cargo build` + `clippy -D warnings` (+ `test`) must pass; precondition for the parity gate; captures Y's regression baseline for the dual gate |
 | `rust-port-parity-verifier` | opus | P2 ITERATE (the per-cycle gate) | sequential, after build-health-auditor | a unit that compiles + passes clippy | retry once; can't run one side → `INCONCLUSIVE`, unit stays open (never pass on faith) | unit's ledger + symbol rows; source unit; Rust impl; `target-architecture.md` | `findings/parity.md` (verdict + diff); per-symbol `- [x]` in `symbol-map.md`; golden fixtures | **the no-downgrade gate** — only a `PASS` (every contract branch matches **and** all the unit's symbols `- [x]`/`- [≠]`) lets the orchestrator mark `- [x]` |
-| `rust-port-merge-integrator` | opus | MERGE (per cycle, when `dest_repo` Y set) | sequential, after a unit's standalone parity `PASS`; one per cycle | a parity-verified unit + a `dest_repo` Y | retry once; unresolvable conflict / Y-substrate can't express a behavior → `- [!]`/`- [≠]` + route up, never drop a side | ported Rust; `merge-ledger.md`; `reports/{research,cross-repo-refs}.md`; repo Y | merged Rust in Y; `merge-ledger.md`; `findings/merge.md` | **no-downgrade-across-the-merge gate (with the re-verify)** — reuse>duplicate but never reuse-by-narrowing; Y stays green |
+| `rust-port-merge-integrator` | opus | MERGE (per cycle, when `dest_repo` Y set) | sequential, in the Y worktree (`dest_worktree`/`dest_branch`); one per cycle | a verified/`reuse-Y`/`map-onto` unit + a `dest_repo` Y | retry once; unresolvable conflict / substrate can't express a behavior → `- [!]`/`- [≠]` + route up, never drop a side; any gate fail → `reset --hard` + release locks + `- [~]` (atomic) | ported Rust (if any); `merge-ledger.md`; `reports/{research,cross-repo-refs}.md`; Y worktree | merged Rust on `dest_branch`; `merge-ledger.md`; `findings/merge.md` | **bidirectional no-downgrade gate** — re-verify vs X **+ Y-not-regressed** + Y green; reuse>duplicate-never-by-narrowing; atomic (commit iff all pass) |
 | `rust-port-researcher` | sonnet (escalate ambiguous verdicts → opus) | P1 DISCOVER; per-unit on demand | parallel-capable at DISCOVER | initial run / a unit needing external or Y-context research | retry once; inconclusive → record open question + evidence, never assume | source X, dest Y, docs/web, `git-kb code` | `reports/research.md` (X-needs ⟷ Y-provides reuse map) | advisory — feeds reuse-vs-reimplement + map-onto-Y; read-only, not a pass/fail gate |
 | `rust-port-cross-repo-referencer` | haiku (escalate reconciliation judgment → higher tier) | P1 DISCOVER (seed map); MERGE (refresh touched symbols) | parallel-capable at DISCOVER; per merge cycle otherwise | a merge run (`dest_repo` Y set) | retry once; empty graph for non-empty repo → re-index; still empty → `INCONCLUSIVE`, never "no references" | X, Y, substrate repos; `symbol-map.md`; `.meta.yaml`; `git-kb code`, `meta` | `reports/cross-repo-refs.md` (per-symbol blast radius + lock scope) | advisory — supplies blast radius + contract-compat flags the merge-integrator gates on; mechanical collection |
 | `continuity-steward` | sonnet (per-call override; shared frontmatter stays opus) | P3 HAND OFF (at budget) | sequential, single-flight at the budget boundary | `cycles_this_session >= cycle_budget` (or STOP) | retry once; missing `baseline.md` → reconstruct verify-on-resume block + note it | `parity-ledger.md`, `symbol-map.md`, `loop_state.md`, `baseline.md`, session commit list | `HANDOFF.md` (state + pointers, the authoritative resume signal) | continuity gate — writes the cold-resume contract; no fake DONE may substitute for it |
@@ -122,7 +122,12 @@ it in sync with the agent defs in `harness/agents/` and the per-row contracts th
 The orchestrator must know the **source root** (the project being ported) and the **Rust target
 crate/dir**, and — for a **port-and-merge** run — the **destination repo Y** (`dest_repo`). Ask once if
 not given (default `dest_repo: none` = port-only); record all in `loop_state.md`. When `dest_repo` is
-set, the ITERATE cycle gains the MERGE step and DONE adds the merge conditions.
+set, the ITERATE cycle gains the MERGE step and DONE adds the merge conditions, and the orchestrator also
+records `dest_branch`/`dest_worktree`/`dest_base` (Y is a separate repo — all Y writes happen in a
+per-task **worktree** on a **feature branch**, never on Y's main; see `rust-port-merge` §Y git discipline).
+**On RESUME of a merge run:** fetch Y, rebase `dest_branch` onto `dest_base`, re-index Y, and re-run the
+cross-repo-referencer over the merged set — any `- [x]` merged unit whose Y blast-radius drifted drops to
+`- [~]` for re-verification (Y is mutable; a merge proven against an old Y isn't proven against the new Y).
 
 ## Phase 1: DISCOVER (initial run)
 
@@ -135,17 +140,24 @@ set, the ITERATE cycle gains the MERGE step and DONE adds the merge conditions.
    `dest_repo` Y is set, Y — the X-needs ⟷ Y-provides **reuse map** so the port maps onto what Y
    already has instead of duplicating it). Reuses `code-research-*` + `deep-research`.
 4. `rust-port-architect` → `.handoff/loop/target-architecture.md` (crate layout, idiom map, deps, and
-   — informed by the reuse map — the per-unit port-and-map / reuse-vs-reimplement decisions).
-5. **When `dest_repo` Y is set:** `rust-port-cross-repo-referencer` → `.handoff/loop/reports/cross-repo-refs.md`
-   (the cross-repo reference + blast-radius map across X⟷Y⟷substrates) and seed
-   `.handoff/loop/merge-ledger.md` (one `- [ ]` row per unit). See `references/merge-ledger.md`.
+   — informed by the reuse map — the per-unit port-and-map / reuse-vs-reimplement decisions). **When Y
+   is set, also record each unit's merge `class`** (`port-fresh`/`extend-Y`/`reuse-Y`/`map-onto-substrate`)
+   from the reuse map — this drives ITERATE (reuse-Y/map-onto skip the fresh port). See `references/merge-ledger.md`.
+5. **When `dest_repo` Y is set:** create the Y **worktree** on a fresh **feature branch**
+   (`dest_worktree` on `dest_branch` off `dest_base`); `rust-port-cross-repo-referencer` →
+   `.handoff/loop/reports/cross-repo-refs.md` (cross-repo reference + blast-radius map across
+   X⟷Y⟷substrates) and seed `.handoff/loop/merge-ledger.md` (one `- [ ]` row per unit, `class`-tagged).
 6. `build-health-auditor` → confirm the Rust target skeleton builds (baseline) **and, when Y is set,
-   that Y builds** → `.handoff/loop/baseline.md`.
+   that Y builds AND is runnable, and that every substrate the map-onto decisions target
+   (`hf`/`weave`/`grit`/`icm`) is actually present in Y's Cargo workspace** → `.handoff/loop/baseline.md`.
+   **When Y is set, also capture Y's own behavioral baseline** (Y's existing test suite + golden fixtures
+   for the symbols in each unit's Y blast-radius) → `.handoff/loop/findings/y-regression.md` — the
+   reference the merge's dual no-downgrade gate diffs against.
    **Also confirm the SOURCE is runnable** — the differential parity-verifier's hard precondition is
    that it can *execute the source* (its `source_toolchain`: bun/node/python). Smoke-run the source
-   (or its test suite) once here; if the source can't be executed, the parity gate can never produce a
-   `PASS` (every unit would be `INCONCLUSIVE`), so record `.handoff/loop/NEEDS-HUMAN` now and stop —
-   fail fast at DISCOVER, not per-unit forever.
+   (or its test suite) once here; if the source — or, for a merge, **Y** or a **named substrate** — can't
+   be executed/found, the gate can never produce a `PASS` (every unit `INCONCLUSIVE`), so record
+   `.handoff/loop/NEEDS-HUMAN` now and stop — fail fast at DISCOVER, not per-unit forever.
 7. Order the ledger by dependency (leaf modules / pure functions first; entrypoints last). See
    `references/parity-ledger.md`. Commit ledger + symbol-map + state + architecture + research +
    (when Y set) cross-repo-refs + merge-ledger.
@@ -156,24 +168,33 @@ set, the ITERATE cycle gains the MERGE step and DONE adds the merge conditions.
 2. Stop checks: no `- [ ]`/`- [~]` left → go to **DONE gate**; `cycles_this_session >= cycle_budget`
    → **HAND OFF**; `.handoff/loop/STOP` present → stop.
 3. Pick the top unported unit whose dependencies are `- [x]`.
-4. **Architect** (only if the unit needs a new structural decision) → **porter** ports it FULLY
-   (no stubs, every branch — see `rust-port-translate`) → **build-health-auditor** (compiles + clippy).
+4. **Branch on the unit's merge `class`** (port-only runs treat every unit as `port-fresh`):
+   - `port-fresh` / `extend-Y` → **Architect** (only if a new structural decision) → **porter** ports it
+     FULLY (no stubs, every branch — see `rust-port-translate`) → **build-health-auditor** (compiles + clippy).
+   - `reuse-Y` / `map-onto-substrate` → **skip the porter** (porting then discarding what Y/substrate
+     already provides is the wasted work the classification removes). Go straight to the parity gate,
+     which differentially verifies **Y's existing symbol (or the substrate) against source X**. If it
+     diverges, Y was only *partial* → reclassify `extend-Y` and port the missing behavior.
 5. **Parity gate** — `rust-port-parity-verifier` runs the differential test (source vs Rust over the
    unit's whole contract, **exercising every symbol of the unit** in `symbol-map.md`). A unit `PASS`
    requires every contract behavior to match **and all the unit's symbols to be `- [x]`/`- [≠]`**
    (rollup rule) → mark the unit `- [x]`. Any unverified symbol or divergence → leave `- [~]`/`- [!]`
    with the exact missing behavior + symbol id; do NOT commit a fake `- [x]`. **A dropped symbol or
    downgrade never passes the gate.**
-6. **MERGE step (only when `dest_repo` Y is set)** — for the unit just marked `- [x]`:
-   `rust-port-cross-repo-referencer` refreshes the touched symbols' references → `rust-port-merge-integrator`
-   integrates the unit into Y (landing decision, reuse>duplicate, grit symbol-lock, conflict resolution —
-   see `rust-port-merge`) → `build-health-auditor` (Y compiles/clippy) → `rust-port-parity-verifier`
-   **re-runs the differential gate in Y's context**. Only a re-`PASS` (+ Y green) marks the unit `- [x]`
-   in `merge-ledger.md`; a downgrade introduced by the merge keeps it `- [~]`. (Skip this step entirely
-   when `dest_repo: none`.)
-7. Write ledger(s) back, bump counters, **commit** one unit (`port(<crate>): <unit> — parity verified`,
-   or `port+merge(<crate>): <unit> — verified in Y` when merged) with the `.handoff/loop/` state.
-   Self-pace (`ScheduleWakeup`).
+6. **MERGE step (only when `dest_repo` Y is set)** — for the unit just marked `- [x]`, **in the Y
+   worktree (`dest_worktree` on `dest_branch`)**: `rust-port-cross-repo-referencer` refreshes the touched
+   symbols' references → `rust-port-merge-integrator` integrates the unit into Y (class-driven landing,
+   dup-scan before a new module, reuse>duplicate-never-by-narrowing, grit symbol-lock, breaking-contract
+   *resolved* not just flagged — see `rust-port-merge`) → `build-health-auditor` (Y compiles/clippy/test)
+   → `rust-port-parity-verifier` **re-runs the differential gate in Y's context** (still matches source X,
+   every symbol) **AND the Y-regression diff** against Y's captured baseline (Y's own behavior preserved).
+   **Atomic:** only a re-`PASS` **+ Y green + Y-not-regressed** commits the unit's Y changes to
+   `dest_branch` and marks `- [x]` in `merge-ledger.md`; any failure → `git -C <dest_worktree> reset
+   --hard`, release grit locks, keep `- [~]`. (Skip this step entirely when `dest_repo: none`.)
+7. Write ledger(s) back, bump counters, **commit** the `.handoff/loop/` state (`port(<crate>): <unit> —
+   parity verified`, or `port+merge(<crate>): <unit> — verified in Y` when merged). A merge cycle thus
+   makes **two commits**: the port-repo state commit and the Y-branch commit (step 6). Self-pace
+   (`ScheduleWakeup`).
 
 ## Phase 3: HAND OFF (at budget)
 
@@ -208,16 +229,18 @@ Write `.handoff/loop/DONE` only when ALL hold:
 - The parity trail in `.handoff/loop/findings/parity.md` shows a passing differential test per unit.
 - **When `dest_repo` Y is set (merge in scope):** the **merge ledger is 100%** — every ported unit is
   `- [x]` merged + **re-verified in Y** (or owner-approved `- [≠]`); a merge left-behind sweep finds no
-  ported-but-unmerged unit; **Y's** `cargo build`/`clippy`/`test` are green; and no contract Y's
-  consumers depend on was broken (cross-repo-referencer compat check). See `references/merge-ledger.md`.
+  ported-but-unmerged unit; **Y's** `cargo build`/`clippy`/`test` are green; **Y is not regressed** (the
+  `findings/y-regression.md` diff is clean — the dual no-downgrade gate); and no contract Y's consumers
+  depend on was broken (or resolved per `rust-port-merge` §breaking-contract). Then **open the PR from
+  `dest_branch` → `dest_base` with auto-merge armed**. See `references/merge-ledger.md`.
 Record the evidence (unit counts, **symbol counts X/Y**, both sweep results, **and merge counts X/Y +
-the Y-green result when merging**) inside `DONE`. After writing `DONE`, run **Phase E**
+the Y-green + Y-not-regressed results + the Y PR link when merging**) inside `DONE`. After writing `DONE`, run **Phase E**
 (full retro) so the completed port feeds the harness's evolution.
 
 ## Data transfer & error handling
 
 - File bus: `.handoff/loop/{parity-ledger,symbol-map,merge-ledger,target-architecture,baseline,loop_state,HANDOFF}.md`,
-  `findings/{parity,merge}.md`, `reports/{inventory,research,cross-repo-refs}.md`.
+  `findings/{parity,merge,y-regression}.md`, `reports/{inventory,research,cross-repo-refs}.md`.
 - **Retry once; never fake completion.** Specialist errors → `- [!]` with reason, continue other
   units. Parity FAIL → unit stays open. Human wall (needs network creds to run source, etc.) →
   `.handoff/loop/NEEDS-HUMAN`, stop. Conflicting behavior readings → keep both, verifier adjudicates.
