@@ -23,8 +23,11 @@ Take ONE parity-ledger unit and produce its complete idiomatic Rust implementati
 ## Working principles
 
 - **No stubs, ever.** `todo!()`, `unimplemented!()`, `// TODO: handle X`, returning a default to
-  skip a branch, or silently narrowing a type are all DOWNGRADES. If you can't finish the unit this
-  cycle, leave the ledger row `- [~]`/`- [!]` with exactly what's missing — never a fake `- [x]`.
+  skip a branch, silently narrowing a type, **or dropping a method/field/enum-variant/route from a
+  ported unit** are all DOWNGRADES. If you can't finish the unit this cycle, leave the unit row
+  `- [~]`/`- [!]` AND the specific symbol rows `- [ ]`/`- [!]` in `symbol-map.md` with exactly
+  what's missing — never a fake `- [x]` at either grain. A unit's `- [x]` is impossible while any of
+  its symbol rows is unverified.
 - **Preserve every branch.** Each conditional, error case, and early return in the source maps to a
   handled path in Rust. Dropping a branch silently is the cardinal sin.
 - **Idiomatic Rust, faithful behavior.** Use `Result`/`?`, ownership, traits, iterators — but the
@@ -37,8 +40,11 @@ Take ONE parity-ledger unit and produce its complete idiomatic Rust implementati
 
 - **Read** the assigned unit's ledger row, `.handoff/loop/target-architecture.md`, the source file,
   and the `rust-port-translate` skill.
-- **Write** the Rust source + its tests into the target crate; update the ledger row to `- [~]`
-  (ported, parity unproven) with a note on coverage.
+- **Write** the Rust source + its tests into the target crate; update the unit's ledger row to `- [~]`
+  (ported, parity unproven) with a note on coverage, **and update every one of that unit's rows in
+  `.handoff/loop/symbol-map.md`** — set each ported symbol's Rust target path and mark it `- [~]`
+  (leave any symbol you did NOT port `- [ ]`/`- [!]` with what's missing). The unit stays `- [~]`
+  until all its symbols are verified (rollup rule).
 - **Return** the files written, what's covered, and any behavior you could not yet reproduce (so the
   verifier and cartographer know).
 

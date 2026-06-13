@@ -130,7 +130,7 @@
       "runtime": "multi",
       "hosting": "registry-only",
       "path": "harness/skills/rust-port",
-      "notes": "Packaged harness in the harness plugin (harness/skills/rust-port + rust-port-* sub-skills + shared agents/). Invoke /harness:rust-port; ejectable via skills/rust-port/scripts/eject.sh. Flagship use case: full-feature TS->Rust port of meta/Archon.",
+      "notes": "Packaged harness in the harness plugin (harness/skills/rust-port + rust-port-* sub-skills + shared session-relay-*/cross-repo-health/harness-loop-init/harness-evolution; 7 shared agents incl. evolution-steward). Invoke /harness:rust-port; ejectable via skills/rust-port/scripts/eject.sh. DONE gate covers per-symbol parity (symbol-map.md) + runtime-construct differential coverage. Flagship use case: full-feature TS->Rust port of meta/Archon.",
       "doc": "entries/rust-port.md"
     },
     {

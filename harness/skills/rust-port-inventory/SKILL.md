@@ -29,6 +29,18 @@ exhaustively, so nothing is silently dropped. Used by `rust-port-cartographer`.
    - documented behaviors in README/CHANGELOG/tests that aren't obvious from code.
 4. **Write the ledger** — `.handoff/loop/parity-ledger.md`, one row per unit, status `- [ ]`,
    dependency-tagged. Schema + legend: `rust-port/references/parity-ledger.md`.
+5. **Harvest symbols (per unit, deterministically).** For each unit, enumerate **every** exported/
+   public/observable symbol (fn, type, method, field, const, enum variant, trait, CLI flag, HTTP
+   route) into `.handoff/loop/symbol-map.md` — one row each, `unit:` tagged to its ledger row, status
+   `- [ ]`. Harvest from the AST/index, **never grep**:
+   ```bash
+   git kb index <source_root>
+   git kb code symbols --file <source-file> --json --limit -1   # --limit -1 = no truncation
+   ```
+   Routes/CLI flags that aren't AST symbols come from the route table / CLI definition. The harvested
+   set (after the row-eligible visibility filter) is the provable denominator; a zero-symbol harvest
+   of a non-empty source is fail-closed (`NEEDS-HUMAN`), never "no symbols". Schema + harvest detail:
+   `rust-port/references/symbol-map.md`.
 
 ## Completeness discipline
 
@@ -36,10 +48,16 @@ exhaustively, so nothing is silently dropped. Used by `rust-port-cartographer`.
   rows. Coverage is stated, never assumed.
 - **Tests are inventory.** The source's test suite enumerates behaviors the authors cared about;
   every distinct behavior tested is a ledger row (and a future parity fixture).
-- **Left-behind sweep (pre-DONE):** re-walk the source and diff against the ledger; any unit absent
-  from the ledger, or any `- [ ]`/`- [~]` row, blocks DONE. Treat "I think that's everything" as a
-  hypothesis to disprove.
+- **Left-behind sweep (pre-DONE), at two grains:** re-walk the source and diff against the *unit*
+  ledger (any absent unit or `- [ ]`/`- [~]` row blocks DONE); then **re-harvest the full source
+  *symbol* set** (`git kb code symbols --json --limit -1`) and diff against `symbol-map.md` — any
+  source symbol with no row, any `- [ ]`/`- [~]`/`- [!]` symbol row, or any `- [x]` unit whose
+  symbols aren't all `- [x]`/`- [≠]` also blocks DONE. A zero/empty symbol re-harvest of a non-empty
+  source is fail-closed (`NEEDS-HUMAN`), never a vacuous `0/0`. Treat "I think that's everything" as a
+  hypothesis to disprove, at both grains.
 
 ## Output
-`.handoff/loop/parity-ledger.md` (authoritative) + `.handoff/loop/reports/inventory.md` (counts by
-status, deferred areas, coverage notes).
+`.handoff/loop/parity-ledger.md` (authoritative units) + `.handoff/loop/symbol-map.md` (authoritative
+symbols, one row per source symbol, `unit:`-tagged) + `.handoff/loop/reports/inventory.md` (counts by
+status at both grains — units X/Y, **symbols X/Y** — deferred areas, harvest method + visibility
+filter, coverage notes).

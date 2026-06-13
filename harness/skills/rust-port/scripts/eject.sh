@@ -19,7 +19,7 @@ mkdir -p "$TARGET/.claude/skills" "$TARGET/.claude/agents" \
          "$TARGET/.handoff/loop/findings" "$TARGET/.handoff/loop/reports"
 for s in "${SKILLS[@]}"; do cp -r "$PLUGIN/skills/$s" "$TARGET/.claude/skills/$s"; echo "  skill  -> .claude/skills/$s"; done
 for a in "${AGENTS[@]}"; do cp "$PLUGIN/agents/$a.md" "$TARGET/.claude/agents/$a.md"; echo "  agent  -> .claude/agents/$a.md"; done
-echo "  state  -> .handoff/loop/ scaffolded (seed loop_state.md: source_root + rust_target)"
+echo "  state  -> .handoff/loop/ scaffolded (seed loop_state.md: source_root + rust_target; cartographer seeds parity-ledger.md + symbol-map.md)"
 
 cat <<'SNIP'
 
