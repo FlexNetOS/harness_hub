@@ -1,5 +1,5 @@
 ---
-name: handoff-loop
+name: handoff-loop-run
 description: >-
   Runs a repo's autonomous loop on the `hf` Continuity Ledger Kernel — the kernel-backed alternative
   to the file-based meta-plugin/rust-port loops. ALWAYS use to run/resume/continue a kernel loop in a
@@ -9,7 +9,7 @@ description: >-
   Defers to the kernel's hard rules; never hand-writes a packet or bypasses a gate.
 ---
 
-# handoff-loop — kernel-backed autonomous loop (drives `hf`)
+# handoff-loop-run — kernel-backed autonomous loop (drives `hf`)
 
 The continuity-kernel loop for a repo set up by `handoff-loop-init`. Where the file-based loops
 (`meta-plugin`, `rust-port`, `code-research`) keep state in `.handoff/loop/` markdown, this loop runs

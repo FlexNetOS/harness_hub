@@ -68,7 +68,8 @@ weakening a gate**. This is how a harness improves itself run over run (automate
 - **Kernel-backed** (when the repo runs the `hf` Continuity Ledger Kernel): `handoff-loop-init`
   **drives `hf init`** to build the full `.handoff/` (ledger + context/capsule + packets + tasks +
   decisions) and sets the ledger-residency `.gitignore` guard — never hand-rolling kernel artifacts;
-  fail-closed if `hf` is absent. The `handoff-loop` skill then runs the witnessed loop (one task/
+  fail-closed if `hf` is absent. The `handoff-loop-run` skill (or the canonical `handoff-loop` in
+  `meta/handoff` — vendored in this hub at `handoff-loop/`) then runs the witnessed loop (one task/
   cycle: `hf resume` → drift → claim → work-in-scope → checkpoint → policy gate → handoff). The
   committed ledger/packet is authoritative; packets are *rendered by `hf`*, never hand-written.
 
