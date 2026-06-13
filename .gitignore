@@ -1,4 +1,20 @@
 # OS / editor scratch
 .DS_Store
-.claude/
+
+# Ignore local Claude settings, but TRACK the hand-authored harness so a fresh
+# session can cold-resume from committed state (agents + skills + orchestrator).
+.claude/*
+!.claude/agents/
+!.claude/skills/
+
+# Rust validator build artifacts
+scripts/hub-validate/target/
+
+# meta worktrees (managed by `meta worktree`, not part of this repo)
+.worktrees/
+
+# Loop runner logs (durable state — backlog/ledger/HANDOFF in .handoff/loop/ — is committed; logs are not)
+.handoff/loop/*.log
+.handoff/loop/ralph-run-*.log
+
 # Nested-meta child clones are added here lazily (keep in sync with .meta.yaml)
