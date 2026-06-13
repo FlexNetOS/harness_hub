@@ -117,7 +117,7 @@
       "displayName": "rust-port (full-parity Rust port loop)",
       "category": "orchestrator",
       "status": "beta",
-      "summary": "Packaged harness (/harness:rust-port): an autonomous, resumable Ralph loop that performs a full-feature, NO-DOWNGRADE port of a source project (TypeScript/Python/...) to idiomatic Rust. A parity ledger inventories every source unit; each is ported fully (no stubs), then differentially parity-verified (source vs Rust) before it counts as done. DONE only at 100% with a left-behind sweep — no feature logic left behind.",
+      "summary": "Packaged harness (/harness:rust-port): an autonomous, resumable Ralph loop that performs a full-feature, NO-DOWNGRADE port of a source project (TypeScript/Python/...) to idiomatic Rust — and optionally MERGES each verified unit into a destination repo Y (re-verified in Y; the rust-port->rust-port-merge arc). A parity ledger + per-symbol map inventory every source unit/symbol; each is ported fully (no stubs), differentially parity-verified, then (if merging) integrated into Y and re-verified. Automated 3-model workflow (opus gates / sonnet workers / haiku mechanical). DONE only at 100% port (+100% merge when set) with left-behind sweeps — no feature logic left behind.",
       "tags": [
         "rust",
         "port",
@@ -125,12 +125,15 @@
         "parity",
         "no-downgrade",
         "packaged",
-        "ralph-loop"
+        "ralph-loop",
+        "merge",
+        "cross-repo",
+        "multi-model"
       ],
       "runtime": "multi",
       "hosting": "registry-only",
       "path": "harness/skills/rust-port",
-      "notes": "Packaged harness in the harness plugin (harness/skills/rust-port + rust-port-* sub-skills + shared session-relay-*/cross-repo-health/harness-loop-init/harness-evolution; 7 shared agents incl. evolution-steward). Invoke /harness:rust-port; ejectable via skills/rust-port/scripts/eject.sh. DONE gate covers per-symbol parity (symbol-map.md) + runtime-construct differential coverage. Flagship use case: full-feature TS->Rust port of meta/Archon.",
+      "notes": "Packaged harness in the harness plugin (harness/skills/rust-port + rust-port-{inventory,translate,parity,merge}/cross-repo-reference + shared session-relay-*/cross-repo-health/harness-loop-init/harness-evolution; 10 agents = 7 specialists incl. merge-integrator/researcher/cross-repo-referencer + 3 shared). Invoke /harness:rust-port; ejectable via skills/rust-port/scripts/eject.sh. DONE gate covers per-symbol parity + runtime-construct + (when merging) merge-ledger re-verified in dest repo Y. Automated 3-model workflow (opus gates / sonnet / haiku). Flagship: TS->Rust port of meta/Archon merged into harness-agent-rs.",
       "doc": "entries/rust-port.md"
     },
     {

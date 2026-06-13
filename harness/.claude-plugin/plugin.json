@@ -1,7 +1,7 @@
 {
   "name": "harness",
   "description": "The team-architecture factory for Claude Code — a meta-skill (/harness:harness) that turns a domain description into an agent team and the skills they use, with six pre-defined team-architecture patterns (Pipeline, Fan-out/Fan-in, Expert Pool, Producer-Reviewer, Supervisor, Hierarchical Delegation). Also ships ready-made packaged harnesses you can run in place or eject into a repo — e.g. /harness:meta-plugin (repo-org loop) and /harness:rust-port (full-parity Rust port). Claude Code용 팀 아키텍처 팩토리: 도메인 한 문장을 에이전트 팀과 스킬 세트로 변환하는 메타 스킬.",
-  "version": "1.7.1",
+  "version": "1.8.0",
   "author": {
     "name": "robin",
     "url": "https://github.com/revfactory"
