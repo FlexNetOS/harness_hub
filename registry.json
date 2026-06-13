@@ -1,6 +1,6 @@
 {
   "schema": "./registry.schema.json",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "updated": "2026-06-13",
   "org": "FlexNetOS",
   "hub": "harness_hub",
@@ -132,6 +132,26 @@
       "path": "harness/skills/rust-port",
       "notes": "Packaged harness in the harness plugin (harness/skills/rust-port + rust-port-* sub-skills + shared agents/). Invoke /harness:rust-port; ejectable via skills/rust-port/scripts/eject.sh. Flagship use case: full-feature TS->Rust port of meta/Archon.",
       "doc": "entries/rust-port.md"
+    },
+    {
+      "id": "code-research",
+      "displayName": "code-research (deep code analysis loop)",
+      "category": "orchestrator",
+      "status": "beta",
+      "summary": "Packaged harness (/harness:code-research): an autonomous, resumable, READ-ONLY loop that deeply researches and analyzes a codebase to answer a question with cited, adversarially-verified evidence. Maps the code + decomposes the question into dimensions; fan-out analysts produce file:line-cited claims; an adversarial verifier tries to REFUTE each claim against the source (running it where ambiguous); a synthesizer writes a decision-grade report (verdict-first, confidence-rated, gaps named). Conclusions are earned by evidence that survived refutation — not plausible guesses.",
+      "tags": [
+        "research",
+        "code-analysis",
+        "architecture",
+        "adversarial-verify",
+        "packaged",
+        "read-only"
+      ],
+      "runtime": "multi",
+      "hosting": "registry-only",
+      "path": "harness/skills/code-research",
+      "notes": "Packaged harness in the harness plugin (harness/skills/code-research + code-research-* sub-skills + shared agents). Invoke /harness:code-research; ejectable. Read-only: maps a codebase, fan-out analysts produce cited claims, adversarial verifier refutes claims vs code, synthesizer writes a decision-grade report.",
+      "doc": "entries/code-research.md"
     }
   ]
 }
