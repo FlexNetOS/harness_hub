@@ -16,8 +16,13 @@ structural decisions once, consistently, so porters don't each invent their own 
    modules, bins, libs, feature flags) → `.handoff/loop/target-architecture.md`.
 2. **Idiom mapping.** Establish the project-wide conventions (see the `rust-port-translate` skill):
    error model (`Result` + error enum / `anyhow`/`thiserror`), async runtime (tokio), trait design
-   for interfaces, ownership/borrowing for shared state, serialization (serde), and how source
-   dynamic patterns (duck typing, monkey-patching, decorators) map to Rust.
+   for interfaces, ownership/borrowing for shared state, serialization (serde), how source dynamic
+   patterns (duck typing, monkey-patching, decorators) map to Rust, and — for runtime/orchestration
+   constructs (DAG executors, run-loops, provider-over-CLI abstractions, gates, cancellation,
+   streaming) — the **port-and-map decision** per unit (REIMPLEMENT vs MAP-ONTO a substrate
+   `hf`/`weave`/`grit`/`icm` vs DELEGATE to a provider CLI). Record each decision and the behaviors it
+   preserves in `target-architecture.md`; a mapping that can't express a behavior is a `- [!]`/`- [≠]`
+   owner-decision, never a silent drop. See `rust-port/references/runtime-constructs.md`.
 3. **Dependency equivalents.** Build the source-lib → Rust-crate table (e.g. express→axum,
    pydantic→serde, prisma→sqlx/sea-orm). Where no equivalent exists, decide: vendor, reimplement,
    or FFI — and record the decision with rationale. **A missing equivalent is never grounds to drop

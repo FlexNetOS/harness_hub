@@ -11,9 +11,12 @@ Flagship use case: a full-capability **TypeScript → Rust** port of [`meta/Arch
 
 ## How it guarantees no downgrade
 
-1. **Exhaustive inventory** (`rust-port-cartographer`) — every module, export, behavior, error path,
-   config key, CLI flag, route, side effect, and edge case becomes a parity-ledger row with its
-   *contract* (not just its name).
+1. **Exhaustive inventory, two grains** (`rust-port-cartographer`) — every module/unit becomes a
+   *parity-ledger* row, and every source *symbol* (exported fn, type, method, field, const, enum
+   variant, trait, CLI flag, HTTP route) becomes a *symbol-map* row (`.handoff/loop/symbol-map.md`),
+   harvested deterministically from the AST/index (`git kb code symbols --json --limit -1`, never
+   grep) so coverage is provable. Each row carries its *contract* (not just its name). A unit is
+   `- [x]` only when all its symbols are — so a dropped method/field/variant/route can't hide.
 2. **Idiom mapping** (`rust-port-architect`) — source→Rust conventions decided once (error model,
    async, traits, ownership, serde) + a dependency-equivalent table. A missing Rust equivalent is
    never grounds to drop a feature (vendor / reimplement / FFI instead).
@@ -22,16 +25,18 @@ Flagship use case: a full-capability **TypeScript → Rust** port of [`meta/Arch
 4. **Differential parity proof** (`rust-port-parity-verifier`) — runs source and Rust over the same
    inputs (all branches) and diffs outputs/side-effects/errors. Only a behavioral `PASS` flips a unit
    to verified. The compile is a precondition, not the verdict.
-5. **DONE gate** — left-behind sweep clean + every unit verified (or an explicit, owner-approved
-   `- [≠]` divergence) + `cargo build`/`clippy`/`test` green.
+5. **DONE gate** — left-behind sweep clean **at both grains** (no unmapped unit AND no unmapped
+   symbol; every `- [x]` unit has 100% verified symbols) + every unit and **every symbol** verified
+   (or an explicit, owner-approved `- [≠]` divergence) + `cargo build`/`clippy`/`test` green.
 
 ## Shape
 
 - **Skills** (`harness/skills/`): `rust-port` (orchestrator) + `rust-port-inventory`,
-  `rust-port-translate`, `rust-port-parity` (+ shared `session-relay`, `cross-repo-health`).
+  `rust-port-translate`, `rust-port-parity` (+ shared `session-relay-wrap-up`, `session-relay-resume`,
+  `cross-repo-health`, `harness-loop-init`, `harness-evolution`).
 - **Agents** (shared `harness/agents/`): `rust-port-cartographer`, `rust-port-architect`,
   `rust-port-porter`, `rust-port-parity-verifier` (specialists) + `build-health-auditor`,
-  `continuity-steward` (shared infra).
+  `continuity-steward`, `evolution-steward` (shared infra).
 - **Execution mode:** hybrid — single-orchestrator Ralph loop, file-based state under `.handoff/loop/`
   (durable so the parity ledger survives the self-restart boundary).
 

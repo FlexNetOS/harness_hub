@@ -9,7 +9,8 @@ rust_target: <abs path / crate of the Rust port>
 cycle_budget: 3
 cycles_this_session: 0     # reset to 0 on RESUME
 cycles_total: 0
-ledger: parity 0/<total> verified
+ledger: parity 0/<total_units> units verified
+symbols: 0/<total_symbols> symbols mapped+verified   # X = symbols at [x]/[≠]; Y = harvested+visibility-filtered source symbols (git kb code symbols --json --limit -1; empty harvest of non-empty source = NEEDS-HUMAN)
 last_item: (none — discovery only)
 status: DISCOVER complete — parity ledger seeded
 last_update: <UTC>

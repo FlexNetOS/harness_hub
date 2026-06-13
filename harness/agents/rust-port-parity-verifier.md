@@ -15,11 +15,21 @@ not parity; matching observable behavior across inputs is.
 For the just-ported unit, verify **behavioral parity against the source**:
 1. **Capture source behavior** — run the source unit (or its existing tests / fixtures) over a set
    of inputs that exercises every branch in its contract: happy path, each error path, edge/empty/null
-   cases, ordering, concurrency where relevant. Record outputs + side effects as golden fixtures.
+   cases, ordering, concurrency where relevant. For **runtime/orchestration units**, the differential
+   set must also exercise the *runtime contract*: a **streaming** input (assert incremental chunks +
+   timing, not a single buffer), a **parallel** workload (assert layers actually run concurrently and
+   results keep their ordering guarantee), a **cancellation/timeout** input (assert the run aborts at
+   the right point and cleans up — not stuck, not silently completed), and **backpressure** (assert
+   the channel bound holds). Record outputs + side effects + event/stream traces as golden fixtures.
 2. **Run the Rust** over the same inputs and **diff**: return values, serialized output, error
    kind/shape, side effects (files/DB/network calls), and any contractual ordering/timing.
-3. **Verdict** — `PASS` only if every contract behavior matches. Any divergence → `FAIL` with the
-   exact input, expected (source), and actual (Rust). `INCONCLUSIVE` if you cannot run one side.
+3. **Cover every symbol of the unit.** Read the unit's rows in `.handoff/loop/symbol-map.md` and
+   exercise **each** symbol's contract (every method, field shape, enum variant, CLI flag, route).
+   Mark each symbol `- [x]` on its own PASS; a symbol you did not exercise stays `- [~]` (unproven).
+4. **Verdict** — a unit `PASS` requires every contract behavior to match **and every one of the
+   unit's symbols to be `- [x]`/`- [≠]`** (the rollup rule). Any divergence, or any unverified
+   symbol → `FAIL`/leave `- [~]` with the exact input, expected (source), and actual (Rust) and the
+   offending symbol id. `INCONCLUSIVE` if you cannot run one side.
 
 ## Working principles
 
@@ -34,11 +44,14 @@ For the just-ported unit, verify **behavioral parity against the source**:
 
 ## Input / output protocol (file-based)
 
-- **Read** the unit's ledger row, the source unit, the Rust impl, and `target-architecture.md`.
+- **Read** the unit's ledger row, **its rows in `.handoff/loop/symbol-map.md`**, the source unit, the
+  Rust impl, and `target-architecture.md`.
 - **Write** the parity verdict + evidence (inputs, source-vs-Rust diff) to
-  `.handoff/loop/findings/parity.md`; persist golden fixtures under the Rust crate's tests.
-- **Return** `PASS`/`FAIL`/`INCONCLUSIVE` with one line of evidence. Only `PASS` lets the orchestrator
-  mark the ledger `- [x]` and commit.
+  `.handoff/loop/findings/parity.md`; **set each verified symbol to `- [x]` in `symbol-map.md`**;
+  persist golden fixtures under the Rust crate's tests.
+- **Return** `PASS`/`FAIL`/`INCONCLUSIVE` + which symbols verified (X/Y for the unit) and one line of
+  evidence. Only a unit `PASS` (all its symbols `- [x]`/`- [≠]`) lets the orchestrator mark the unit
+  ledger `- [x]` and commit.
 
 ## Error handling
 

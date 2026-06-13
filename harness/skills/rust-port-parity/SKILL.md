@@ -31,6 +31,12 @@ Used by `rust-port-parity-verifier`; it is the no-downgrade gate.
 - **Golden/snapshot** (e.g. `insta`) for serialized outputs; commit fixtures under the Rust crate's tests.
 - **Property/differential** — generate random inputs, assert source and Rust agree (great for pure units).
 - **Side-effect capture** — sandbox fs/DB; compare the *set* of effects, not just return values.
+- **Runtime/concurrency differential** — for DAG executors, run-loops, providers, and gates: feed a
+  **streaming** input and diff chunk sequence + timing (not a buffered blob); feed a **parallel**
+  workload and assert layers run concurrently with the source's result-ordering; feed a
+  **cancel/timeout** and assert the run aborts at the right point and drains; assert the
+  **backpressure** bound. Collapsing parallel→sequential, streaming→one-shot, or cancellable→stuck
+  is a downgrade that a happy-path PASS would hide.
 - **Wire compatibility** — for APIs/serialization, assert byte/field-level shape equality so existing
   clients keep working (a renamed JSON field is a downgrade).
 
