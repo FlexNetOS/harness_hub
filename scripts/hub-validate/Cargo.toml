@@ -6,7 +6,7 @@
 name = "hub-validate"
 version = "0.1.0"
 edition = "2021"
-description = "Rust-native validator for the harness_hub catalog (Hub Standard). Replaces the former scripts/validate.py."
+description = "Rust-native validator + registrar for the harness_hub catalog (Hub Standard). Replaces the former scripts/validate.py. Subcommands: validate (default), register."
 license = "MIT"
 
 [[bin]]
@@ -14,7 +14,8 @@ name = "hub-validate"
 path = "src/main.rs"
 
 [dependencies]
-serde_json = "1.0"
+# preserve_order keeps existing registry.json key/entry ordering stable on rewrite.
+serde_json = { version = "1.0", features = ["preserve_order"] }
 
 [profile.release]
 opt-level = 1
