@@ -24,6 +24,7 @@ runtime or the toolkit that builds one, it belongs here.*
 | [oh-my-pi](entries/oh-my-pi.md) | agent-runtime | multi | stable | [doc](entries/oh-my-pi.md) · [run](snippets/oh-my-pi.sh) |
 | [harness](entries/harness.md) | harness-toolkit | node | beta | [doc](entries/harness.md) |
 | [meta-plugin](entries/meta-plugin.md) | orchestrator | multi | beta | [doc](entries/meta-plugin.md) |
+| [handoff](entries/handoff.md) | orchestrator | multi | beta | [doc](entries/handoff.md) |
 
 The `harness` toolkit is vendored in-repo at [`harness/`](harness); it now also ships **packaged
 harnesses** (ready-made, runnable, ejectable) as `/harness:<name>` commands — see the
