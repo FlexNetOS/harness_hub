@@ -29,13 +29,23 @@ and decides the ITERATE path:
 |-------|---------|-------------------------------|
 | `port-fresh` | Y lacks it | full port (porter) → standalone parity-verify → merge as **new module** in Y |
 | `extend-Y` | Y has a *partial* impl | port the missing behavior → merge by **completing** Y's module (unify, never narrow) |
-| `reuse-Y` | Y **already provides it fully** | **skip the fresh port** — differentially verify **Y's existing symbol against source X**; if it matches, mark merged (verify-only); if it diverges, it's really `extend-Y` (Y was partial) — reclassify and complete |
+| `reuse-Y?` (provisional) | Y *appears to* provide it fully (architect claim from the reuse narrative — **not yet verified**) | **skip the fresh port** — differentially verify **Y's existing symbol against source X**; if it matches, it becomes `reuse-Y` (verified) and is marked merged (verify-only); if it diverges, it's really `extend-Y`/`port-fresh` (Y was partial or absent) — reclassify and complete |
 | `map-onto-substrate` | a runtime construct Y delegates to `hf`/`weave`/`grit`/`icm` | **skip the fresh port** — map onto the substrate per `runtime-constructs.md`; differentially verify the substrate-backed path against X |
 
 `reuse-Y` and `map-onto-substrate` units do **not** run the porter — porting them then discarding the
 port (because Y/substrate already has it) is the wasted work this classification removes. They still go
 through the **same opus re-verification against source X** — reuse is never trust; a `reuse-Y` that
 secretly diverges from X is caught and reclassified to `extend-Y`.
+
+**`reuse-Y` is PROVISIONAL until verified (`reuse-Y?`).** At DISCOVER it is an architect *claim* from
+the reuse narrative (`research.md`), not a verified state — so plan it as "differential-verify, likely a
+small port," **never as a free `[x]`**. Empirically reuse-Y reclassifies often under the gate: a
+2026-06-14 MiroFish→teri cycle reclassified **6 of 6** backend `reuse-Y?` units (U-006/U-008→`extend-Y`,
+U-009→`extend-Y`, U-013→`port-fresh`, U-004→`- [≠]`, U-048→`extend-Y`) — the "verify-only quick-wins"
+framing set a false free-win expectation; the reality was six small ports. The differential gate **caught
+all 6** (reuse-is-never-trusted held — keep that strength); the only defect was the *optimistic plan*.
+So budget reuse-Y cycles honestly, and spot-check a couple of `reuse-Y?` claims against the actual Y
+source before asserting the class. This aligns the plan with the gate; it does not relax the gate.
 
 ## Port-in-place (`rust_target == dest_repo` — port and merge collapse)
 

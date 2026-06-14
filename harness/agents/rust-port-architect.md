@@ -33,6 +33,16 @@ structural decisions once, consistently, so porters don't each invent their own 
    This drives ITERATE: `reuse-Y`/`map-onto-substrate` units **skip the fresh port** and are verified
    against source X directly, so the loop never re-implements what Y already provides. Classify
    `reuse-Y` only on full-contract evidence — a near-fit is `extend-Y` (reuse-by-narrowing is a downgrade).
+   **`reuse-Y` is PROVISIONAL at DISCOVER (`reuse-Y?`) — an architect *claim* from the research/reuse
+   narrative, NOT a verified state.** It becomes `reuse-Y` (verified) only when the differential gate
+   confirms Y's symbol against X. Plan reuse-Y as "differential-verify, likely-small-port," **never as a
+   free win** — empirically reuse-Y routinely reclassifies to `extend-Y`/`port-fresh` under the gate (a
+   2026-06-14 MiroFish→teri cycle reclassified **6 of 6** backend reuse-Y units: missing strips, no
+   chunking, untested branches). So (a) spot-CHECK a couple of `reuse-Y?` claims against the **actual Y
+   source** (not just `research.md`) before asserting the class at DISCOVER, and (b) budget reuse-Y cycles
+   as differential-verify-plus-probable-small-port, so cycle estimates and expectations are honest. The
+   differential gate already catches every divergence (reuse is never trusted) — this aligns the *plan*
+   with the gate's reality; it does not relax the gate.
 
 ## Working principles
 
