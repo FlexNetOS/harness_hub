@@ -38,6 +38,14 @@ it will be silently dropped; your job is to make that impossible.
    flags come from the route table / CLI definition. Apply the row-eligible visibility filter to both
    the map and the denominator (record it in `reports/inventory.md`). This is what makes a dropped
    method/field/variant/route *inside* a ported unit impossible to hide.
+   - **Exclude vendored dependencies by default** (`.venv`/`venv`/`site-packages`/`*.dist-info`/
+     `*.egg-info`/`node_modules`/`dist`/`build`/`target`/`vendor`) from the index and harvest — a
+     bundled dependency dir floods the denominator with library internals (over-coverage, the inverse
+     of "left behind"); record the excluded dirs in `reports/inventory.md`.
+   - **When git-kb can't index the source tree** (indexer unconfigured for that language — observed for
+     Python), fall back to the language's own AST tool deterministically (Python `ast`; TS/JS
+     `tsc --emitDeclarationOnly`/`<script>` parse; Rust `syn`) and record the method per language. The
+     empty-harvest-of-non-empty-source fail-closed rule still applies after the fallback.
 4. **Left-behind sweep (pre-DONE), at two grains.** Re-scan the source and diff against the *unit*
    ledger — ANY source unit not in the ledger, or any `- [ ]`/`- [~]` unit, blocks DONE. Then
    **re-harvest the full source *symbol* set** (same visibility filter) and diff against
@@ -67,8 +75,13 @@ it will be silently dropped; your job is to make that impossible.
 - **Write** `.handoff/loop/parity-ledger.md` (authoritative units), `.handoff/loop/symbol-map.md`
   (authoritative symbols, `unit:`-tagged) and `.handoff/loop/reports/inventory.md` (coverage at both
   grains: counts by status, symbols X/Y, harvest method + visibility filter, deferred areas).
-- **Return** a terse summary: total units + **total symbols**, ported/verified/remaining counts at
-  both grains, and any coverage gaps (unmapped symbols, rollup violations).
+- **Write incrementally — append per unit/per shard as you harvest, never buffer the whole map to the
+  end.** The symbol map can be very large (1000+ rows / 100+ KB); flush each unit's rows (or each shard,
+  when sharded) to disk as produced so a connection drop strands at most the unit in flight. The on-disk
+  ledger/map is the deliverable.
+- **Return** a terse **pointer-summary** (<400 words): total units + **total symbols**,
+  ported/verified/remaining counts at both grains, the files written, and any coverage gaps (unmapped
+  symbols, rollup violations, excluded vendored dirs). **Never return the full map in the message.**
 
 ## Error handling
 

@@ -72,6 +72,13 @@ can't prove completeness):
    subcommand lives under `git kb code` — `git kb index` is not a command). Without this step the
    harvest returns `{"symbols":[],"count":0}` and the fail-closed rule below correctly walls — so
    indexing is the precondition, not an optional warm-up.
+   - **Exclude vendored dependencies from the index/harvest by default** — `*/.venv/*`, `*/venv/*`,
+     `*/site-packages/*`, `*.dist-info/*`, `*.egg-info/*`, `*/node_modules/*`, `*/dist/*`, `*/build/*`,
+     `*/target/*`, `*/vendor/*`. A bundled dependency dir (e.g. MiroFish's `.venv` with 15k+
+     torch/numpy/flask `.py` files) otherwise floods the symbol denominator with library internals,
+     making coverage both heavy and *inaccurate*. Scope the index/harvest to the real-source trees and
+     record the excluded dirs in `reports/inventory.md`. (This excludes library internals from BOTH the
+     map and the denominator — same one-rule-both-sides discipline as the visibility filter.)
 2. **Harvest per unit**, full output (no cap):
    ```bash
    git kb code symbols --file <source-file> --json --limit -1
@@ -87,10 +94,18 @@ can't prove completeness):
 3. **Routes / CLI flags** aren't always AST symbols — harvest them from the route table / CLI
    definition (the same sources the inventory skill names) and add a row each. A framework route
    macro or a config-driven flag still gets a row.
-4. **Fallback when unindexed:** if `git kb code symbols` returns empty for a language it can't index,
-   use a language server / the language's own AST tool (`tsc --emitDeclarationOnly` d.ts, `ast` /
-   `inspect` for Python). Record the harvest method in `reports/inventory.md`. **Never fall back to
-   grep for the authoritative set** — grep may *cross-check*, never *define* coverage.
+4. **Fallback when unindexed:** if `git kb code symbols` returns empty for a language it can't index
+   (the indexer may simply be **unconfigured for that source tree** — observed for a Python source where
+   git-kb returned nothing), use the language's own AST tool — this is a *deterministic* fallback, not a
+   degradation: **Python → the `ast` module** (`ast.parse` → walk classes/defs/assignments; HTTP routes
+   from `@bp.route(...)`/decorator AST; locale keys from a JSON key-path walk); **TS/JS → `tsc
+   --emitDeclarationOnly` `.d.ts`** or a structural `<script>`-block parse for `.vue`; **Rust →
+   `syn`/rust-analyzer**. The fallback is still AST-based and reproducible — record the exact method
+   *per language* in `reports/inventory.md` (e.g. "Python: `ast` structural parse; JS/Vue: `<script>`
+   export-pattern parse; routes: `@bp.route` AST walk"). The empty-harvest fail-closed rule below applies
+   to the fallback too: a zero result after a working AST fallback over non-empty source is still
+   `NEEDS-HUMAN`. **Never fall back to grep for the authoritative set** — grep may *cross-check*, never
+   *define* coverage.
 
 The harvested set (after the **visibility filter** above) is the denominator. Total symbols `Y` =
 |filtered harvest|; verified `X` = symbols at `- [x]`/`- [≠]`. This `X/Y` is the `loop_state.md`

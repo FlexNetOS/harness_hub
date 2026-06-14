@@ -123,6 +123,10 @@ it in sync with the agent defs in `harness/agents/` and the per-row contracts th
   baseline, fail-closed → broadcast `relay:resumed` → reset `cycles_this_session=0`), continue at the
   ledger's next `- [ ]`/`- [~]` unit.
 - `.handoff/loop/` exists + user asks to redo one unit/phase → **PARTIAL**: re-run only that unit.
+- `.handoff/loop/` exists + `loop_state.md` shows `status: DISCOVER in-progress` (no HANDOFF) →
+  **RESUME DISCOVER**: read the `discover_progress:` checklist and continue at the first `pending` item
+  (the committed deliverables before it are durable — don't redo them). An interrupted DISCOVER is
+  resumable, not restarted, because each deliverable was committed as it landed (Phase 1).
 - `.handoff/loop/` exists + new source/scope → **NEW RUN**: move old to `.handoff/loop_prev/`.
 - absent → **INITIAL**.
 
@@ -136,9 +140,28 @@ per-task **worktree** on a **feature branch**, never on Y's main; see `rust-port
 cross-repo-referencer over the merged set — any `- [x]` merged unit whose Y blast-radius drifted drops to
 `- [~]` for re-verification (Y is mutable; a merge proven against an old Y isn't proven against the new Y).
 
+**Port-in-place (`rust_target == dest_repo` — a common config).** When the Rust port lands *directly
+into an existing Rust app* that already has the foundation (no separate port crate, then merge — the port
+target **is** the merge destination, e.g. porting a Python app into an existing Rust app), set
+`dest_repo` = `rust_target` and the **port and merge steps collapse into one landing**: the porter lands
+Rust straight into the dest's modules, so there is no "port-then-merge-into-Y" hop. In this config:
+- The **merge-ledger tracks each unit's `class` + landing decision** (where in the dest it lands), but it
+  does **not** re-port — `port-fresh`/`extend-Y` units are produced once by the porter directly in the
+  dest; `reuse-Y`/`map-onto-substrate` units verify the dest's existing surface against X.
+- The **merge condition collapses to "landed-in-dest + dest-not-regressed"** — there is no second-repo
+  re-verification hop (X⟷Y *is* X⟷dest). The **parity gate doubles as the dest-regression gate**: the
+  dest's own behavioral baseline (`findings/y-regression.md`, captured at DISCOVER) is the no-downgrade
+  guard, run every cycle. `dest_branch`/`dest_worktree` are the port's own branch/worktree (one git
+  context, one commit per cycle — the two-commit rule does not apply when there is one repo).
+- All gates stay intact — collapsing the hop removes *duplicate* bookkeeping, never a check. See
+  `references/merge-ledger.md` §Port-in-place.
+
 ## Phase 1: DISCOVER (initial run)
 
-1. Seed `.handoff/loop/loop_state.md` (template in `scripts/`) with source root + Rust target + UTC start.
+1. Seed `.handoff/loop/loop_state.md` (template in `scripts/`) with source root + Rust target + UTC start,
+   and set `status: DISCOVER in-progress` with a `discover_progress:` checklist
+   (`ledger/symbol-map/research/architecture/cross-repo-refs/merge-ledger/baseline` — each `pending`).
+   **Commit this seed now** — DISCOVER is multi-step and long; an interrupted DISCOVER must resume cold.
 2. `rust-port-cartographer` → `.handoff/loop/parity-ledger.md` (every source unit, all `- [ ]`)
    **and `.handoff/loop/symbol-map.md`** (every source symbol — fn/type/method/field/const/variant/
    trait/CLI flag/route — harvested deterministically via `git kb code symbols --json --limit -1`,
@@ -162,12 +185,33 @@ cross-repo-referencer over the merged set — any `- [x]` merged unit whose Y bl
    reference the merge's dual no-downgrade gate diffs against.
    **Also confirm the SOURCE is runnable** — the differential parity-verifier's hard precondition is
    that it can *execute the source* (its `source_toolchain`: bun/node/python). Smoke-run the source
-   (or its test suite) once here; if the source — or, for a merge, **Y** or a **named substrate** — can't
-   be executed/found, the gate can never produce a `PASS` (every unit `INCONCLUSIVE`), so record
-   `.handoff/loop/NEEDS-HUMAN` now and stop — fail fast at DISCOVER, not per-unit forever.
+   (or its test suite) once here.
+   **Classify runnability per unit/path, not whole-source binary** (a source is often *partly* runnable):
+   - a **locally-differentiable** unit runs from local source alone (utils, models, pure pipeline) — it
+     MUST be runnable for its parity gate to PASS;
+   - an **external-service** unit's source path needs creds/an external SaaS to run (e.g. a cloud
+     graph/memory SDK, a subprocess sim) and is a `map-onto-substrate` unit — it is verified by the
+     **behavioral equivalence of the mapped dest/substrate path against the unit's contract**, NOT by
+     running the source's external path. Record which units are external-service in `baseline.md`.
+   **The fail-fast NEEDS-HUMAN trigger is unchanged in strength** — record `.handoff/loop/NEEDS-HUMAN`
+   now and stop if: the source toolchain itself can't run at all; OR a unit that **requires running the
+   source** (a locally-differentiable unit) has no runnable path; OR — for a merge — **Y** or a **named
+   substrate** can't be executed/found. Only the *false* halt is removed: an external-service path that
+   is map-onto-substrate-verified is **not** a wall (it never required running the source's external
+   path). Fail fast at DISCOVER for a genuine wall, but do not halt on a path that was never going to be
+   run differentially against the source.
 7. Order the ledger by dependency (leaf modules / pure functions first; entrypoints last). See
-   `references/parity-ledger.md`. Commit ledger + symbol-map + state + architecture + research +
-   (when Y set) cross-repo-refs + merge-ledger.
+   `references/parity-ledger.md`. Mark `status: DISCOVER complete`.
+
+**Commit each DISCOVER deliverable as it lands — not once at the end.** After each of steps 2–7
+produces its artifact, flip that item in `loop_state.md`'s `discover_progress:` to `done` and **commit
+that artifact + the updated state** (`discover(<port>): <artifact> — <n>/<total>`). DISCOVER is a long,
+multi-agent phase; a single end-of-phase commit means any interruption strands every partial deliverable
+uncommitted and un-resumable (observed: a prior DISCOVER left ledger/research/baseline on disk but no
+loop_state/symbol-map/architecture/HANDOFF, so the documented RESUME path couldn't pick it up and the
+work was redone). With incremental commits + the `discover_progress:` checklist, a dropped DISCOVER
+resumes at the first `pending` item. (The DONE-gate completeness sweep is unchanged — incremental commits
+only make partial progress durable, never let an incomplete DISCOVER read as complete.)
 
 ## Phase 2: ITERATE (one unit per cycle)
 
@@ -248,6 +292,14 @@ the Y-green + Y-not-regressed results + the Y PR link when merging**) inside `DO
 
 - File bus: `.handoff/loop/{parity-ledger,symbol-map,merge-ledger,target-architecture,baseline,loop_state,HANDOFF}.md`,
   `findings/{parity,merge,y-regression}.md`, `reports/{inventory,research,cross-repo-refs}.md`.
+- **Agent-spawn contract — drop-resilience for large/multi-file deliverables.** Any DISCOVER agent that
+  produces a large or multi-file artifact (cartographer's ledger+symbol-map, architect's
+  target-architecture+merge-ledger, researcher's research report) MUST **write each artifact/section to
+  disk incrementally as it is produced** and **return only a short pointer-summary (<400 words), never
+  the full content**. A mid-stream connection drop then strands at most the section in flight, not the
+  whole phase, and the small return payload is not itself a drop risk. (A run lost an entire architect
+  phase to a socket close at ~400s/29 tool-uses with nothing on disk; the incremental-write re-spawn
+  succeeded.) The on-disk artifact — not the agent's message — is always the deliverable.
 - **Retry once; never fake completion.** Specialist errors → `- [!]` with reason, continue other
   units. Parity FAIL → unit stays open. Human wall (needs network creds to run source, etc.) →
   `.handoff/loop/NEEDS-HUMAN`, stop. Conflicting behavior readings → keep both, verifier adjudicates.

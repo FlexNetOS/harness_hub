@@ -52,8 +52,12 @@ high-stakes verdict to opus rather than guess.
 - **Write** `.handoff/loop/reports/research.md`: per-capability X-needs ⟷ Y-provides reuse map, the
   **per-unit class** (`port-fresh`/`extend-Y`/`reuse-Y`/`map-onto-substrate`), the **Y-baseline targets**
   (Y behaviors/tests the merge must not regress), deep behaviors the inventory missed, upstream-library
-  semantics, and open questions (with evidence).
-- **Return** the reuse map summary + the top decisions/open questions for the architect.
+  semantics, and open questions (with evidence). **Write incrementally — append each capability section
+  as you finish it**, never buffer the whole report to the end, so a mid-stream drop strands at most the
+  section in flight (the report can run tens of KB).
+- **Return** a short **pointer-summary** (<400 words): the reuse-map headline + the file written + the
+  top decisions/open questions for the architect. **Never return the full report in the message** — the
+  on-disk report is the deliverable and a large return payload is itself a drop risk.
 
 ## Error handling
 
