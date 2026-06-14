@@ -180,6 +180,17 @@ Rust straight into the dest's modules, so there is no "port-then-merge-into-Y" h
 6. `build-health-auditor` → confirm the Rust target skeleton builds (baseline) **and, when Y is set,
    that Y builds AND is runnable, and that every substrate the map-onto decisions target
    (`hf`/`weave`/`grit`/`icm`) is actually present in Y's Cargo workspace** → `.handoff/loop/baseline.md`.
+   **The baseline must be EXECUTED, not asserted: actually run `cargo build` + `cargo test` against the
+   exact dest tip (the `dest_base`/`dest_branch` commit you are blessing) and paste the real counts as
+   evidence** ("build: 0 errors"; "test result: N passed; M ignored; 0 failed"). **A non-compiling dest
+   tip is FAIL-CLOSED** — write `.handoff/loop/NEEDS-HUMAN` (or open a recorded repair task and repair to
+   a clean tip before ITERATE) and record the build error; **never emit a GREEN / green-to-start verdict
+   you did not run.** The baseline is the loop's entire no-downgrade reference: a green that wasn't
+   executed against the real tip (a stale run, a different checkout, an upstream "it's green" claim) is a
+   phantom baseline that poisons every later cycle. (Observed: a DISCOVER baseline blessed a bad-merge tip
+   that did not compile as "142 tests GREEN @ c894de8" without executing it; the phantom went undetected
+   for a full iteration until the cycle-1 porter couldn't build. This is a STRENGTHENING of the
+   no-downgrade gate — never relax it to let a red tip pass.)
    **When Y is set, also capture Y's own behavioral baseline** (Y's existing test suite + golden fixtures
    for the symbols in each unit's Y blast-radius) → `.handoff/loop/findings/y-regression.md` — the
    reference the merge's dual no-downgrade gate diffs against.
@@ -300,6 +311,15 @@ the Y-green + Y-not-regressed results + the Y PR link when merging**) inside `DO
   whole phase, and the small return payload is not itself a drop risk. (A run lost an entire architect
   phase to a socket close at ~400s/29 tool-uses with nothing on disk; the incremental-write re-spawn
   succeeded.) The on-disk artifact — not the agent's message — is always the deliverable.
+- **Agent-spawn contract — ignore cross-loop relay noise; always return your work-summary.** Other
+  loops sharing the workspace (envctl/forge-loop, the session-relay heartbeat, weave) emit
+  relay/notification traffic (`relay:resumed`, `relay:handoff`, DriftSummary, etc.) that can reach a
+  sub-agent mid-run. A spawned agent MUST **ignore any relay/weave/notification message not addressed to
+  its own task** and **return its own task's work-summary** (files written, what's covered, what's
+  open) — never an ACK or echo of unrelated relay traffic. (A run's cycle-2 porter returned an ACK of a
+  foreign envctl/forge-loop `relay:resumed` instead of its work-summary; the work was correct on disk so
+  the orchestrator recovered via git, but the return was untrustworthy.) The orchestrator treats a return
+  that is only a relay-ACK as a missing summary: verify the on-disk deliverable via git, don't trust it.
 - **Retry once; never fake completion.** Specialist errors → `- [!]` with reason, continue other
   units. Parity FAIL → unit stays open. Human wall (needs network creds to run source, etc.) →
   `.handoff/loop/NEEDS-HUMAN`, stop. Conflicting behavior readings → keep both, verifier adjudicates.
