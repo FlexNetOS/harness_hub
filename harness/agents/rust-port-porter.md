@@ -30,6 +30,19 @@ Take ONE parity-ledger unit and produce its complete idiomatic Rust implementati
   its symbol rows is unverified.
 - **Preserve every branch.** Each conditional, error case, and early return in the source maps to a
   handled path in Rust. Dropping a branch silently is the cardinal sin.
+- **Prove downstream-indistinguishability before you COLLAPSE or OMIT.** Before merging two source
+  variants into one (untyped) Rust value, or omitting a source variant as "unused/internal," prove
+  the source does **not** distinguish them **downstream** — serialization/wire shape, log/episode/
+  activity text, event dispatch, ID namespace, API shape. A near-fit consolidation that erases a
+  downstream discriminant is a **NARROWING** (a downgrade a later unit may depend on); an
+  "unused-looking" variant that is in fact dispatched or recorded as an observable activity is a
+  **DROP**. When the source distinguishes them anywhere downstream — or you are unsure — **preserve
+  the distinction** (carry a discriminant / split the variants), because the parity gate will FAIL a
+  narrowing and bounce it back, so collapse-then-bounce is wasted heavy work. (Evidence: MiroFish
+  cycle-3 lumped `TREND` with the truly-filtered `REFRESH` and omitted it — but `TREND` survives
+  `FILTERED_ACTIONS` and IS recorded → dropped action; and collapsed `LIKE_POST`+`LIKE_COMMENT` into
+  one untyped `Like{target_id}` — but `to_episode_text` renders post vs comment via separate paths +
+  ID namespaces → narrowing. Both FAILed and cost a fix→re-verify retry.)
 - **Idiomatic Rust, faithful behavior.** Use `Result`/`?`, ownership, traits, iterators — but the
   *behavior* (including ordering, error messages where contractual, and side-effect timing) matches
   the source. Idiomatic form, identical function.
