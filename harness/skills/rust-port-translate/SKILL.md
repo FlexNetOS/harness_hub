@@ -58,6 +58,13 @@ is the architect's; the porter applies it.
 ## The no-downgrade rules (porter)
 
 - **Every branch ports.** Each conditional, error path, and early return becomes a handled Rust path.
+- **No collapse/omit without a downstream-indistinguishability proof.** Before merging two source
+  variants into one untyped Rust value, or omitting a variant as "unused/internal," prove the source
+  doesn't distinguish them downstream — serde/wire shape, log/episode/activity text, event dispatch,
+  ID namespace, API shape. Collapsing two variants the source renders or dispatches differently is a
+  **narrowing** (a later unit may need the discriminant); omitting a variant that is in fact
+  dispatched/recorded as an observable activity is a **drop**. When in doubt, carry a discriminant /
+  split the variants — the parity gate FAILs a narrowing, so collapse-then-bounce is wasted work.
 - **No stubs.** `todo!()`, `unimplemented!()`, default-to-skip, or narrowing a type to dodge a case
   are downgrades — leave the ledger row `- [~]` with what's missing instead of a fake `- [x]`.
 - **Behavior matches, form modernizes.** Observable behavior (outputs, error kinds, side-effect
