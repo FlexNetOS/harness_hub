@@ -48,8 +48,15 @@ structural decisions once, consistently, so porters don't each invent their own 
 
 - **Read** the source root + `.handoff/loop/parity-ledger.md` (the cartographer's inventory).
 - **Write** `.handoff/loop/target-architecture.md` (layout + idiom map + dependency table).
-- **Return** the crate layout summary + any unresolved structural risks (e.g. "no async-safe
-  equivalent for lib X — chose reimplement").
+- **Write incrementally — never buffer a large deliverable to the end.** Append each section to
+  `target-architecture.md` (and each unit's merge `class` to `merge-ledger.md`) *as you produce it*, so
+  a mid-stream connection drop strands at most the section in flight, not the whole phase. (A prior run
+  lost an entire architect phase when the agent died at ~400s/29 tool-uses having written nothing to
+  disk; the re-spawn that wrote each artifact incrementally succeeded.)
+- **Return** a short **pointer-summary** (<400 words): the crate-layout headline + the file(s) you wrote
+  + any unresolved structural risks (e.g. "no async-safe equivalent for lib X — chose reimplement").
+  **Never return the full architecture in the message** — the artifact on disk is the deliverable; a
+  large return payload is itself a drop risk and the orchestrator reads the file, not the message.
 
 ## Error handling
 

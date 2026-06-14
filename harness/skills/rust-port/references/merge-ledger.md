@@ -37,6 +37,29 @@ port (because Y/substrate already has it) is the wasted work this classification
 through the **same opus re-verification against source X** — reuse is never trust; a `reuse-Y` that
 secretly diverges from X is caught and reclassified to `extend-Y`.
 
+## Port-in-place (`rust_target == dest_repo` — port and merge collapse)
+
+When the port lands directly into an existing Rust app that already has the foundation (the port target
+**is** the merge destination — e.g. porting a Python app into an existing Rust app), there is no separate
+port crate to merge into Y; the porter lands Rust straight into the dest's modules. The merge ledger then
+tracks **class + landing decision only**, and the merge condition collapses:
+
+- **No re-port, no second-repo hop.** `port-fresh`/`extend-Y` units are produced once, in the dest;
+  `reuse-Y`/`map-onto-substrate` units verify the dest's existing surface against source X. The
+  merge-ledger row records the **class** and the **landing** (which dest module), not a re-implementation.
+- **"Merged" = landed-in-dest + dest-not-regressed.** Because X⟷Y *is* X⟷dest, the per-unit **parity gate
+  doubles as the dest-regression gate**: a unit is `- [x]` in the merge ledger when its parity gate PASSes
+  **and** the dest's own behavioral baseline (`findings/y-regression.md`, captured at DISCOVER) is not
+  regressed. There is no separate "re-verify in Y's context" hop — it is the same verification.
+- **One git context.** `dest_branch`/`dest_worktree` are the port's own branch/worktree; a cycle makes
+  **one** commit, not two (the two-commit rule is for a genuinely separate Y repo).
+- **Gates unchanged.** This collapses *duplicate bookkeeping* (a merge row that would otherwise restate
+  the parity row), never a check — every no-downgrade condition still holds, now via the dest-regression
+  baseline. The dual no-downgrade below still applies: don't regress the dest's own pre-existing behavior.
+
+When `rust_target != dest_repo` (a separate destination repo Y), everything below applies as written
+(real second repo: worktree/branch/PR, two commits per cycle, re-verify in Y's context).
+
 ## Status legend (same discipline as the parity ledger)
 
 | Mark | Meaning | Who sets it |
