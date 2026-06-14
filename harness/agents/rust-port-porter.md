@@ -43,6 +43,20 @@ Take ONE parity-ledger unit and produce its complete idiomatic Rust implementati
   `FILTERED_ACTIONS` and IS recorded → dropped action; and collapsed `LIKE_POST`+`LIKE_COMMENT` into
   one untyped `Like{target_id}` — but `to_episode_text` renders post vs comment via separate paths +
   ID namespaces → narrowing. Both FAILed and cost a fix→re-verify retry.)
+- **Never propose `- [≠]` for a portable feature — port it.** `- [≠]` (intentional-divergence) is for a
+  source behavior that is genuinely **inexpressible** in the destination (→ really a `- [!]`),
+  **non-contractual/unobservable** (stochastic jitter, a filtered-before-recorded op), or a **strict
+  superset** the dest already provides (the precise bar: `rust-port-translate` SKILL + `parity-ledger.md`
+  §"The `[≠]` bar"). It is **NOT** a way to skip work by reasoning "the destination's architecture won't
+  use it" / "probably unused" / "not needed for <dest>'s design" / "the dest consumes the value directly
+  so the export isn't needed" / "`serde` covers it" — for a feature that produces a **distinct observable
+  output** (a serialization shape like `to_reddit_format`/`to_dict`, an export format, a file sink like
+  rotating-file logging, a CLI flag, a distinct render path). Those are **portable features**: port them
+  (exact keys / opt-in sink / conditional omission), don't `[≠]`-skip them. **When in doubt, PORT IT** —
+  the parity gate now CHALLENGES every `[≠]` and FAILs a disguised skip, so a `[≠]`-then-bounce is wasted
+  work, and a skipped serializer can *hide a second downgrade* (MiroFish cycle-8: the `to_*_format` skip
+  also masked a bio+persona field collapse the serializers would have exposed — both `[≠]`'d feature
+  skips were corrected to PORTED).
 - **Idiomatic Rust, faithful behavior.** Use `Result`/`?`, ownership, traits, iterators — but the
   *behavior* (including ordering, error messages where contractual, and side-effect timing) matches
   the source. Idiomatic form, identical function.

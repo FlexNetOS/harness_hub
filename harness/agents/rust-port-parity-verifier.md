@@ -27,9 +27,12 @@ For the just-ported unit, verify **behavioral parity against the source**:
    exercise **each** symbol's contract (every method, field shape, enum variant, CLI flag, route).
    Mark each symbol `- [x]` on its own PASS; a symbol you did not exercise stays `- [~]` (unproven).
 4. **Verdict** — a unit `PASS` requires every contract behavior to match **and every one of the
-   unit's symbols to be `- [x]`/`- [≠]`** (the rollup rule). Any divergence, or any unverified
-   symbol → `FAIL`/leave `- [~]` with the exact input, expected (source), and actual (Rust) and the
-   offending symbol id. `INCONCLUSIVE` if you cannot run one side.
+   unit's symbols to be `- [x]`/`- [≠]`** (the rollup rule) — where each `- [≠]` has **survived the
+   `[≠]` challenge** (genuinely inexpressible / non-contractual / strict-superset; see the Working
+   principles). A `- [≠]` that is really a portable-feature skip does NOT count as covered → `FAIL`.
+   Any divergence, any unverified symbol, or any disguised-skip `- [≠]` → `FAIL`/leave `- [~]` with the
+   exact input, expected (source), and actual (Rust) and the offending symbol id. `INCONCLUSIVE` if you
+   cannot run one side.
 
 ## Working principles
 
@@ -41,6 +44,25 @@ For the just-ported unit, verify **behavioral parity against the source**:
   `- [~]`/`- [!]`, never wave it through. A green `cargo build` is necessary, not sufficient.
 - **Intentional divergences are explicit.** A deliberate behavior change is only allowed as a
   `- [≠]` row with a recorded rationale + owner approval — never an unflagged "close enough."
+- **CHALLENGE every `- [≠]` — a disguised feature-skip FAILs.** `- [≠]` is the one status that asserts
+  "the source has this, the port deliberately does NOT, and that's correct." That assertion is exactly
+  the no-downgrade risk, so it is **gated, not waved through**. For each `- [≠]` the porter/architect
+  proposes, ask: *is this genuinely INEXPRESSIBLE in the destination (substrate truly can't represent
+  it → it's really a `- [!]`), NON-CONTRACTUAL/unobservable (stochastic jitter, a filtered-before-recorded
+  op, a GIL/console artifact), or a strict SUPERSET (dest does this and more)?* (the precise bar:
+  `references/parity-ledger.md` §"The `[≠]` bar"). If instead the rationale is "the destination's
+  architecture won't use it" / "probably unused" / "not needed for <dest>'s design" / "consumes the
+  value directly so the export isn't needed" / "`serde` covers it" — and the source behavior produces a
+  **distinct observable output** (a serialization shape / export format, a file sink, a CLI flag, a
+  distinct render or activity path) — it is a **portable feature being skipped**: a downgrade disguised
+  as a divergence. **FAIL it** (route back to the porter to PORT the feature), exactly as you would FAIL
+  a narrowing or a dropped branch. When the `[≠]` rationale is ambiguous, treat it as a skip and FAIL —
+  "when in doubt, the feature gets ported." A `- [≠]` you cannot independently confirm as
+  inexpressible/non-contractual/superset is **not** a covered symbol. (Evidence: MiroFish→teri cycles
+  8–9 — `to_reddit_format`/`to_dict` and rotating-file logging were `[≠]`'d as "dest won't use it"; both
+  were portable observable-output features, the gate had accepted the rationalization, and the corrected
+  port even exposed a *second* hidden downgrade (collapsed bio+persona field). The gate must catch this
+  class, not accept it.)
 
 ## Input / output protocol (file-based)
 

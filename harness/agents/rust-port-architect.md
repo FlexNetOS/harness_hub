@@ -49,6 +49,18 @@ structural decisions once, consistently, so porters don't each invent their own 
 - **No capability downgrade.** If the source supports X (streaming, hot-reload, a plugin system),
   the Rust design must support X. If Rust makes it *harder*, design it in — don't quietly cut it.
   Capability cuts are only allowed as an explicit `- [≠] intentional-divergence` with owner approval.
+- **The `- [≠]` bar (don't classify a portable feature as a divergence).** When you record a `- [≠]`
+  (or a MAP-ONTO "Substrate gaps" line), it is legal ONLY if the behavior is genuinely **inexpressible**
+  in the destination/substrate (really a `- [!]`), **non-contractual/unobservable**, or a **strict
+  superset** the dest already provides (the precise bar: `references/parity-ledger.md` §"The `[≠]` bar").
+  It is **never** legal to `- [≠]` a portable feature — one producing a distinct observable output (a
+  serialization/export shape, a file sink, a CLI flag, a recorded activity) — on the reasoning "the
+  destination's architecture won't use it" / "the dest consumes the value directly so the export isn't
+  needed." That is a disguised feature-skip; classify it for porting (`extend-Y`/`port-fresh`), not
+  `- [≠]`. **When in doubt, port it.** The parity gate CHALLENGES every `[≠]` and FAILs a disguised skip,
+  so a wrong `[≠]` at classification just costs a re-port cycle. (Evidence: MiroFish→teri cycles 8–9 —
+  U-018 `to_reddit_format`/`to_dict` and U-004 rotating-file logging were `[≠]`'d as "dest won't use it",
+  then corrected to PORTED; the U-018 skip also hid a bio+persona field collapse.)
 - **Decide once, apply everywhere.** Cross-cutting choices (error type, async, config loading) are
   made here and recorded, so the port is internally consistent.
 - **Idiomatic, not transliterated.** Re-express in Rust's strengths; don't port a `try/except`

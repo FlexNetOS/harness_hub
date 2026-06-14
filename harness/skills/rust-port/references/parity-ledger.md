@@ -38,6 +38,39 @@ unit-level `- [x]`.
 
 **Only `- [x]` and `- [≠]` count toward DONE.** A `- [~]` is an unproven claim and never closes a unit.
 
+### The `[≠]` bar — when intentional-divergence is legal (and when it is a disguised skip)
+
+`- [≠]` is **not** a convenience escape for "porting this is extra work" — it is a deliberate,
+owner-visible *capability* decision, and the no-downgrade contract treats a wrongly-`[≠]`'d portable
+feature as a **defect**, not a row. `[≠]` is permitted **ONLY** when the source behavior is:
+
+- **(a) genuinely INEXPRESSIBLE in the destination** — a substrate truly cannot represent it (this is
+  really a `- [!]` owner-decision: a Zep-SaaS call with no in-process equivalent, an OASIS subprocess
+  primitive the native engine has no analogue for); **or**
+- **(b) NON-CONTRACTUAL / unobservable** — it perturbs nothing a consumer, a test, a log/episode/wire
+  shape, or a downstream unit can observe (retry *jitter* = stochastic sleep latency; a Python-GIL /
+  Windows-console artifact with no behavioral contract; a source action that is filtered out before it
+  is ever recorded — e.g. an op in `FILTERED_ACTIONS` that never becomes an activity); **or**
+- **(c) a strict SUPERSET** — the destination already does this and MORE, losing nothing (the dest's
+  accepted-format set is a superset of the source's; the dest's type carries every source field plus
+  extras).
+
+`[≠]` is **NEVER** legal as: "the destination's architecture won't use it", "probably unused", "not
+needed for <dest>'s design", "consumes the value directly so the export isn't needed", or
+"`serde::Serialize` covers it" — **for a feature that produces a distinct observable output**: a
+serialization SHAPE (a `to_reddit_format`/`to_dict` producing specific keys), an export format, a file
+sink (rotating-file logging), a CLI flag, a distinct render path. Those are **portable features**, and
+the rule is **a portable feature is ported, not `[≠]`-skipped**. A near-fit `[≠]` that erases an
+observable output is the same class as a *narrowing* — a downgrade a later unit may depend on.
+
+**When in doubt, PORT IT (preserve capability)** — the cost of porting a cheap serializer or an opt-in
+sink is far less than the silent capability loss of skipping it. (Evidence: MiroFish→teri ITERATE
+cycles 8–9 — U-018's `to_reddit_format`/`to_twitter_format`/`to_dict` were `[≠]`'d as "teri consumes
+`SocialProfile` directly, OASIS export not needed" and U-004's rotating-file logging as
+"console-by-design"; both were portable features producing real observable output, both were corrected
+to PORTED, and the U-018 skip had *also* hidden a second downgrade — bio+persona collapsed into one
+field — that the serializers exposed.)
+
 ## Dependency ordering (top = port first)
 
 1. **Leaf units first** — pure functions, value types, utilities with no project-internal deps.

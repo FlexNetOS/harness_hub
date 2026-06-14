@@ -67,6 +67,20 @@ is the architect's; the porter applies it.
   split the variants — the parity gate FAILs a narrowing, so collapse-then-bounce is wasted work.
 - **No stubs.** `todo!()`, `unimplemented!()`, default-to-skip, or narrowing a type to dodge a case
   are downgrades — leave the ledger row `- [~]` with what's missing instead of a fake `- [x]`.
+- **`- [≠]` is for inexpressible/non-contractual/superset — never "the dest won't use it."** Intentional-
+  divergence (`- [≠]`) is legal ONLY when the source behavior is (a) genuinely **inexpressible** in the
+  destination (substrate truly can't represent it → really a `- [!]` owner-decision), (b)
+  **non-contractual / unobservable** (retry *jitter* = stochastic sleep; a filtered-before-recorded op; a
+  GIL/console artifact with no behavioral contract), or (c) a **strict SUPERSET** (the dest does this and
+  MORE, losing nothing). It is **NEVER** legal as "the destination's architecture won't use it",
+  "probably unused", "not needed for <dest>'s design", "the dest consumes the value directly so the export
+  isn't needed", or "`serde::Serialize` covers it" — **for a feature that produces a distinct observable
+  output**: a serialization SHAPE (`to_reddit_format`/`to_dict` → specific keys), an export format, a file
+  sink (rotating-file logging), a CLI flag, a distinct render path. **A portable feature is ported, not
+  `[≠]`-skipped — when in doubt, PORT IT** (preserve capability). A wrongly-`[≠]`'d portable feature is a
+  downgrade the parity gate will CHALLENGE and FAIL, so `[≠]`-then-bounce is wasted work; and skipping a
+  cheap serializer can *mask a second downgrade* it would have exposed (MiroFish cycle-8: a `to_*_format`
+  `[≠]`-skip also hid a bio+persona field collapse).
 - **Behavior matches, form modernizes.** Observable behavior (outputs, error kinds, side-effect
   timing, ordering where contractual) equals the source; the *expression* is idiomatic Rust.
 - **Capability parity.** Streaming stays streaming; concurrency stays concurrent; cancellation stays

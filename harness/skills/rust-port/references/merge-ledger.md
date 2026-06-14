@@ -83,6 +83,14 @@ When `rust_target != dest_repo` (a separate destination repo Y), everything belo
 **Only `- [x]` and `- [≠]` count toward merge-DONE.** A merge is real only when behavior is re-proven in
 Y — a standalone port PASS does not close a merge row.
 
+**The `[≠]` bar applies on the merge side too** (see `parity-ledger.md` §"The `[≠]` bar" for the
+precise definition): a merge `- [≠]` is legal only when the behavior is genuinely **inexpressible** in
+Y's substrate (really a `- [!]`), **non-contractual/unobservable**, or a **strict superset** Y already
+provides. It is **never** legal as "Y's architecture won't use it" / "Y consumes the value directly so
+the export isn't needed" / "`serde` covers it" for a portable feature that produces a distinct
+observable output (a serialization shape, an export format, a file sink, a CLI flag). A portable
+feature is **merged, not `[≠]`-skipped** — when in doubt, land it (preserve capability).
+
 ## Ordering (by Y's dependency graph, not just X's)
 
 - A unit can be merged only when its parity-ledger row is `- [x]` (ported/verified) — *or* it is a

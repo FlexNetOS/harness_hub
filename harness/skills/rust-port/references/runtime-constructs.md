@@ -22,6 +22,16 @@ blocked row or a `- [≠]` owner-decision — **never a silent drop**. "It mostl
 A mapped unit is still differentially parity-verified against the source (the verifier doesn't care
 whether the impl is hand-rolled or substrate-backed — only that behavior matches).
 
+**`- [≠]` here means genuinely-inexpressible, not "the destination won't use it."** A MAP-ONTO/REIMPLEMENT
+decision may `- [≠]` a source behavior ONLY when the substrate *truly cannot represent it* (inexpressible),
+the behavior is *non-contractual/unobservable*, or the dest is a *strict superset* (see `parity-ledger.md`
+§"The `[≠]` bar"). It is **never** legal to `- [≠]` a portable behavior — one that produces a distinct
+observable output (a serialization/export shape, a file sink, a CLI flag, a recorded activity) — by
+rationalizing "the native engine's design won't use it" or "the dest consumes the value directly." That is a
+disguised feature-skip, and the no-downgrade rule is **when in doubt, port/map it** (preserve capability),
+not skip it. A `- [≠]` "Substrate gaps" line must name a *real* inability of the substrate, not a design
+preference of the destination.
+
 ## Decision table — reimplement vs map-onto (source subsystem -> substrate)
 
 | Source subsystem (Archon idiom) | Default decision | Substrate | What MUST be preserved (verify, don't assume) |
