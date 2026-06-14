@@ -18,5 +18,13 @@ symbols: 0/<total_symbols> symbols mapped+verified   # X = symbols at [x]/[≠];
 merge: 0/<total_units> merged+reverified-in-Y   # only when dest_repo != none; X = units [x] in merge-ledger.md (merged + re-verified in Y); else N/A
 classes: port-fresh=? extend-Y=? reuse-Y=? map-onto-substrate=?   # up-front unit classification from the researcher reuse map (drives ITERATE; reuse-Y/map-onto skip the fresh port)
 last_item: (none — discovery only)
-status: DISCOVER complete — parity ledger seeded
+status: DISCOVER in-progress   # -> "DISCOVER complete" only when discover_progress is all done
+discover_progress:   # incremental DISCOVER resilience — commit each as it lands; resume at first `pending`
+  ledger: pending
+  symbol-map: pending
+  research: pending          # N/A for port-only (no dest_repo Y)
+  architecture: pending
+  cross-repo-refs: pending   # only when dest_repo != none
+  merge-ledger: pending      # only when dest_repo != none
+  baseline: pending
 last_update: <UTC>

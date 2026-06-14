@@ -18,6 +18,15 @@ exhaustively, so nothing is silently dropped. Used by `rust-port-cartographer`.
 1. **Map the surface.** Enumerate packages/modules/files carrying logic. Use the source's own
    structure (workspace members, `package.json`/`pyproject` entry points, route tables, CLI defs).
    Prefer AST/symbol tools (`git-kb code symbols --json`, language servers) over grep for accuracy.
+   - **Exclude vendored dependencies by default.** A source tree often bundles its installed
+     dependencies (Python `.venv`/`venv`/`site-packages`/`*.dist-info`/`*.egg-info`; JS
+     `node_modules`/`dist`/`build`; Rust `target`; generic `vendor`). Inventorying those as "source"
+     is the *over-coverage* failure mode (e.g. MiroFish bundles a `.venv` with 15k+ numpy/torch/flask
+     `.py` files). **Default-exclude** that set from the walk and the symbol harvest, and record a
+     coverage note ("detected bundled-dependency dir `<path>`, excluded — N files") in
+     `reports/inventory.md` so the exclusion is explicit, not silent. The skip list is a default, not a
+     ceiling — a project that genuinely vendors *first-party* code under one of those names is an
+     explicit include override (record it).
 2. **Extract contracts, not names.** For each unit record what it *does*: inputs, outputs, side
    effects (fs/net/DB/process), **every error/exception path**, edge/empty/null handling, and any
    ordering/concurrency guarantee. A row named but not contracted is a stub waiting to happen.

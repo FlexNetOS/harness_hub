@@ -29,13 +29,46 @@ and decides the ITERATE path:
 |-------|---------|-------------------------------|
 | `port-fresh` | Y lacks it | full port (porter) → standalone parity-verify → merge as **new module** in Y |
 | `extend-Y` | Y has a *partial* impl | port the missing behavior → merge by **completing** Y's module (unify, never narrow) |
-| `reuse-Y` | Y **already provides it fully** | **skip the fresh port** — differentially verify **Y's existing symbol against source X**; if it matches, mark merged (verify-only); if it diverges, it's really `extend-Y` (Y was partial) — reclassify and complete |
+| `reuse-Y?` (provisional) | Y *appears to* provide it fully (architect claim from the reuse narrative — **not yet verified**) | **skip the fresh port** — differentially verify **Y's existing symbol against source X**; if it matches, it becomes `reuse-Y` (verified) and is marked merged (verify-only); if it diverges, it's really `extend-Y`/`port-fresh` (Y was partial or absent) — reclassify and complete |
 | `map-onto-substrate` | a runtime construct Y delegates to `hf`/`weave`/`grit`/`icm` | **skip the fresh port** — map onto the substrate per `runtime-constructs.md`; differentially verify the substrate-backed path against X |
 
 `reuse-Y` and `map-onto-substrate` units do **not** run the porter — porting them then discarding the
 port (because Y/substrate already has it) is the wasted work this classification removes. They still go
 through the **same opus re-verification against source X** — reuse is never trust; a `reuse-Y` that
 secretly diverges from X is caught and reclassified to `extend-Y`.
+
+**`reuse-Y` is PROVISIONAL until verified (`reuse-Y?`).** At DISCOVER it is an architect *claim* from
+the reuse narrative (`research.md`), not a verified state — so plan it as "differential-verify, likely a
+small port," **never as a free `[x]`**. Empirically reuse-Y reclassifies often under the gate: a
+2026-06-14 MiroFish→teri cycle reclassified **6 of 6** backend `reuse-Y?` units (U-006/U-008→`extend-Y`,
+U-009→`extend-Y`, U-013→`port-fresh`, U-004→`- [≠]`, U-048→`extend-Y`) — the "verify-only quick-wins"
+framing set a false free-win expectation; the reality was six small ports. The differential gate **caught
+all 6** (reuse-is-never-trusted held — keep that strength); the only defect was the *optimistic plan*.
+So budget reuse-Y cycles honestly, and spot-check a couple of `reuse-Y?` claims against the actual Y
+source before asserting the class. This aligns the plan with the gate; it does not relax the gate.
+
+## Port-in-place (`rust_target == dest_repo` — port and merge collapse)
+
+When the port lands directly into an existing Rust app that already has the foundation (the port target
+**is** the merge destination — e.g. porting a Python app into an existing Rust app), there is no separate
+port crate to merge into Y; the porter lands Rust straight into the dest's modules. The merge ledger then
+tracks **class + landing decision only**, and the merge condition collapses:
+
+- **No re-port, no second-repo hop.** `port-fresh`/`extend-Y` units are produced once, in the dest;
+  `reuse-Y`/`map-onto-substrate` units verify the dest's existing surface against source X. The
+  merge-ledger row records the **class** and the **landing** (which dest module), not a re-implementation.
+- **"Merged" = landed-in-dest + dest-not-regressed.** Because X⟷Y *is* X⟷dest, the per-unit **parity gate
+  doubles as the dest-regression gate**: a unit is `- [x]` in the merge ledger when its parity gate PASSes
+  **and** the dest's own behavioral baseline (`findings/y-regression.md`, captured at DISCOVER) is not
+  regressed. There is no separate "re-verify in Y's context" hop — it is the same verification.
+- **One git context.** `dest_branch`/`dest_worktree` are the port's own branch/worktree; a cycle makes
+  **one** commit, not two (the two-commit rule is for a genuinely separate Y repo).
+- **Gates unchanged.** This collapses *duplicate bookkeeping* (a merge row that would otherwise restate
+  the parity row), never a check — every no-downgrade condition still holds, now via the dest-regression
+  baseline. The dual no-downgrade below still applies: don't regress the dest's own pre-existing behavior.
+
+When `rust_target != dest_repo` (a separate destination repo Y), everything below applies as written
+(real second repo: worktree/branch/PR, two commits per cycle, re-verify in Y's context).
 
 ## Status legend (same discipline as the parity ledger)
 
@@ -49,6 +82,14 @@ secretly diverges from X is caught and reclassified to `extend-Y`.
 
 **Only `- [x]` and `- [≠]` count toward merge-DONE.** A merge is real only when behavior is re-proven in
 Y — a standalone port PASS does not close a merge row.
+
+**The `[≠]` bar applies on the merge side too** (see `parity-ledger.md` §"The `[≠]` bar" for the
+precise definition): a merge `- [≠]` is legal only when the behavior is genuinely **inexpressible** in
+Y's substrate (really a `- [!]`), **non-contractual/unobservable**, or a **strict superset** Y already
+provides. It is **never** legal as "Y's architecture won't use it" / "Y consumes the value directly so
+the export isn't needed" / "`serde` covers it" for a portable feature that produces a distinct
+observable output (a serialization shape, an export format, a file sink, a CLI flag). A portable
+feature is **merged, not `[≠]`-skipped** — when in doubt, land it (preserve capability).
 
 ## Ordering (by Y's dependency graph, not just X's)
 
