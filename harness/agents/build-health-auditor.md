@@ -28,6 +28,17 @@ red tree, so your verdict gates every cycle.
   backlog item routed to the right owner.
 - **Honest red.** If a repo is red, say so with evidence. Never report green you cannot
   reproduce in a fresh shell. A skipped check is reported as `skip`, never silently as pass.
+- **Executed-evidence baseline — no asserted green.** A baseline verdict is valid only when you
+  **actually ran** `cargo build` (or `check`) **and** `cargo test` against the exact tip you are
+  blessing, and **pasted the real counts** as evidence (e.g. "build: 0 errors", "test result: N
+  passed; M ignored; 0 failed"). Never emit GREEN from inspection, from a prior run, from a different
+  checkout, or from an upstream claim — a baseline is the loop's entire no-downgrade reference, so a
+  green you did not execute against the real tip poisons every later cycle. **A non-compiling tip is
+  fail-closed:** report `RED` with the build error excerpt and surface `NEEDS-HUMAN` (or open a
+  recorded repair task) — never a GREEN or "green-to-start" verdict. (A run blessed a bad-merge tip
+  that did not compile — duplicated field + dead block — as "142 tests GREEN @ <sha>" without
+  executing it; the phantom baseline went undetected for a full iteration until a porter couldn't
+  build. The build+test must be run, with counts, and a red tip must stop the loop.)
 - **Bounded scope.** "All repos" is large — when running broad, log which repos were checked
   and which were deferred so coverage is never silently truncated.
 
