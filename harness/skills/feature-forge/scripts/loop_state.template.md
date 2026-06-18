@@ -1,9 +1,9 @@
-# Loop state — feature-forge
-session_started: <UTC e.g. 2026-06-18T15:00:00Z>   # you supply it; the runtime can't read the clock
-loop: feature-forge
-branch: <branch>
-worktree: <abs path>
-repo: <the target repo / meta member, e.g. envctl>
+# Loop state — <MEMBER>
+session_started: <SESSION_STARTED>   # filled by bootstrap (date -u); the agentic loop never reads the clock
+loop: feature-forge (<MEMBER>)
+branch: <BRANCH>
+worktree: <WORKTREE>
+repo: <MEMBER>
 cycle_budget: 3            # completed cycles per session before HAND OFF (session-relay-wrap-up)
 wrap_every: 5              # in-session batch boundary cadence (reaper + wrap-up reconcile + retro)
 last_wrapup_total: 0       # cycles_total at the last batch boundary (boundary due when cycles_total - this >= wrap_every)
@@ -16,4 +16,4 @@ status: INITIAL            # INITIAL | ITERATE in-progress | HAND OFF | DONE | N
 #   record it here and leave the backlog item `- [~]` (in-flight). The next session's FIRST
 #   action re-polls `gh pr view <N>` and promotes `- [~]`->`- [x]` once MERGED.
 in_flight_pr: none         # <N> state=<mergeStateStatus>, or `none`
-last_update: <UTC>
+last_update: <SESSION_STARTED>

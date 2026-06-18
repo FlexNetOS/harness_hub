@@ -16,10 +16,30 @@ AGENTS=(feature-forge-architect feature-forge-implementer feature-forge-guardian
         evolution-steward continuity-steward)
 
 mkdir -p "$TARGET/.claude/skills" "$TARGET/.claude/agents" \
-         "$TARGET/.handoff/loop/findings" "$TARGET/.handoff/loop/reports"
-for s in "${SKILLS[@]}"; do cp -r "$PLUGIN/skills/$s" "$TARGET/.claude/skills/$s"; echo "  skill  -> .claude/skills/$s"; done
+         "$TARGET/.handoff/loop/findings" "$TARGET/.handoff/loop/reports" \
+         "$TARGET/scripts" "$TARGET/ci/gates"
+# F4: rm-then-copy so re-eject into an existing skill dir REPLACES it (cp -r into an existing dir nests
+# it as <name>/<name>/). F6: agents are copied fresh too — see the re-eject note printed below.
+for s in "${SKILLS[@]}"; do rm -rf "$TARGET/.claude/skills/$s"; cp -r "$PLUGIN/skills/$s" "$TARGET/.claude/skills/$s"; echo "  skill  -> .claude/skills/$s"; done
 for a in "${AGENTS[@]}"; do cp "$PLUGIN/agents/$a.md" "$TARGET/.claude/agents/$a.md"; echo "  agent  -> .claude/agents/$a.md"; done
+
+# Bundle the load-bearing loop-hygiene tooling the forge-loop / session-relay skills REFERENCE
+# (without these, the ejected skills point at scripts that don't exist — a runtime failure). Generic,
+# repo-agnostic. Don't clobber a target's own same-named file.
+BUNDLED="$(dirname "${BASH_SOURCE[0]}")/bundled"
+copy_keep() { # <src> <dst-rel>  — copy into the target only if absent (never clobber the repo's own)
+  local src="$BUNDLED/$1" dst="$TARGET/$2"
+  [ -f "$src" ] || return 0
+  if [ -f "$dst" ]; then echo "  keep   -> $2 (target already has one)"; else
+    mkdir -p "$(dirname "$dst")"; cp "$src" "$dst"; case "$2" in *.sh) chmod +x "$dst";; esac; echo "  tool   -> $2"; fi
+}
+copy_keep reap-worktrees.sh            scripts/reap-worktrees.sh
+copy_keep handoff-merge-guard.sh       scripts/handoff-merge-guard.sh
+copy_keep install-handoff-merge-driver.sh scripts/install-handoff-merge-driver.sh
+copy_keep loop-state.sh                ci/gates/loop-state.sh
+copy_keep gitattributes                .gitattributes
 echo "  state  -> .handoff/loop/ scaffolded (seed loop_state.md from skills/feature-forge/scripts/loop_state.template.md; create backlog.md from your roadmap)"
+echo "  NOTE: re-eject REPLACES bundled skills/agents — back up any local edits to .claude/agents/*.md first."
 
 cat <<'SNIP'
 
