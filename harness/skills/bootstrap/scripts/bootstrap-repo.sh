@@ -18,7 +18,11 @@
 #   bash bootstrap-repo.sh <target-repo-dir> [--apply] [--member NAME] [--repo GIT_URL] [--meta-root PATH]
 set -euo pipefail
 
-TARGET="" ; APPLY=0 ; MEMBER="" ; REPO_URL="" ; META_ROOT="${META_ROOT:-}"
+# NOTE: do NOT seed META_ROOT from the ambient env — within meta, $META_ROOT is commonly exported
+# (mission-control panes, CLAUDE.md), and honoring it would silently redirect .meta.yaml mutation onto
+# the production fleet config of a DIFFERENT tree than the target. META_ROOT is set ONLY by --meta-root
+# or by walking up from TARGET; and the resolved root must be an ANCESTOR of TARGET (guard below).
+TARGET="" ; APPLY=0 ; MEMBER="" ; REPO_URL="" ; META_ROOT=""
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN="$(cd "$HERE/../../.." && pwd)"   # harness/  (skills/<name>/scripts -> up 3)
 
@@ -58,7 +62,10 @@ else
   run "cargo build --release in $META_ROOT/handoff" bash -c "cd '$META_ROOT/handoff' && cargo build --release"
   run "mkdir -p ~/.local/bin" mkdir -p "$HOME/.local/bin"
   run "symlink hf -> $META_ROOT/handoff/target/release/hf" ln -sf "$META_ROOT/handoff/target/release/hf" "$HOME/.local/bin/hf"
-  if [ "$APPLY" -eq 1 ]; then command -v hf >/dev/null 2>&1 || note "WARN: ~/.local/bin not on PATH — add it, then re-run"; fi
+  # F5: put ~/.local/bin on PATH for the rest of THIS run so steps 2/6 (hf init/status) work in one pass.
+  case ":$PATH:" in *":$HOME/.local/bin:"*) : ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac
+  if [ "$APPLY" -eq 1 ]; then command -v hf >/dev/null 2>&1 \
+    || note "WARN: hf still not resolvable — add ~/.local/bin to PATH in your shell profile for future sessions"; fi
 fi
 
 # ── 1. ensure git repo + fleet membership ─────────────────────────────────────────────────────────
@@ -66,21 +73,43 @@ step "1. ensure git repo + fleet membership (.meta.yaml)"
 [ -d "$TARGET/.git" ] || fail "$TARGET is not a git repo (the kernel is Git-anchored). 'git init' first."
 : "${META_ROOT:=$(cd "$TARGET" && while [ "$PWD" != / ]; do [ -f .meta.yaml ] && { echo "$PWD"; break; }; cd ..; done)}"
 [ -n "$META_ROOT" ] && [ -f "$META_ROOT/.meta.yaml" ] || fail "no .meta.yaml found above $TARGET (set --meta-root); fleet discovery needs it."
+META_ROOT="$(cd "$META_ROOT" && pwd)"
+# SAFETY (F2): the .meta.yaml we may EDIT must be an ancestor of TARGET — never mutate a foreign tree's
+# fleet config (e.g. an ambient/wrong --meta-root pointing at the production root for an outside target).
+case "$TARGET/" in
+  "$META_ROOT"/*) : ;;
+  *) fail "resolved meta-root '$META_ROOT' is NOT an ancestor of target '$TARGET' — refusing to edit a foreign .meta.yaml. Pass --meta-root pointing at the target's own workspace." ;;
+esac
 META="$META_ROOT/.meta.yaml"
+note "meta-root: $META_ROOT"
 [ -n "$REPO_URL" ] || REPO_URL="$(git -C "$TARGET" remote get-url origin 2>/dev/null || true)"
-if grep -qE "^[[:space:]]+${MEMBER}:" "$META" 2>/dev/null; then
-  note "fleet member '$MEMBER' already in .meta.yaml"
+# F7: scope the membership check to keys UNDER `projects:` (a whole-file grep false-matches a same-named
+# key elsewhere, e.g. options: mytool:).
+member_in_projects() { awk -v m="$MEMBER" '
+  /^projects:/{p=1; next} /^[^[:space:]#]/{p=0} p && $0 ~ ("^[[:space:]]+" m ":") {f=1} END{exit !f}' "$META"; }
+if member_in_projects; then
+  note "fleet member '$MEMBER' already under projects: in .meta.yaml"
 else
   [ -n "$REPO_URL" ] || note "WARN: no git remote on $TARGET — set --repo <git-url> so the .meta.yaml entry is complete"
   ENTRY="  ${MEMBER}:\n    repo: ${REPO_URL:-git@github.com:FlexNetOS/${MEMBER}.git}"
   note "add to $META under projects::"; printf '%b\n' "$ENTRY" | sed 's/^/      /'
   if [ "$APPLY" -eq 1 ]; then
     cp "$META" "$META.bak.$$" ; note "$DRY backed up .meta.yaml -> $(basename "$META").bak.$$"
-    # append under the top-level 'projects:' map (best-effort; verify structure after)
+    # Insert under the top-level `projects:` map. F3: handle inline `projects: {}`/`[]` (converting to a
+    # block) and a missing `projects:` key; a plain `projects:` (block) gets the entry as its first child.
     awk -v entry="$(printf '%b' "$ENTRY")" '
-      /^projects:/{print; print entry; ins=1; next} {print}
-      END{ if(!ins) print "projects:\n" entry }' "$META" > "$META.tmp" && mv "$META.tmp" "$META"
-    note "$DRY appended '$MEMBER' to projects: (verify the YAML)"
+      /^projects:[[:space:]]*(\{[[:space:]]*\}|\[[[:space:]]*\])[[:space:]]*$/ { print "projects:"; print entry; ins=1; next }
+      /^projects:/ { print; print entry; ins=1; next }
+      { print }
+      END { if(!ins) print "projects:\n" entry }' "$META" > "$META.tmp" && mv "$META.tmp" "$META"
+    # F3: fail-closed if the edit produced invalid YAML — restore the backup rather than ship a broken root.
+    if command -v python3 >/dev/null 2>&1 && python3 -c 'import yaml' >/dev/null 2>&1; then
+      python3 -c "import yaml; yaml.safe_load(open('$META'))" >/dev/null 2>&1 \
+        || { cp "$META.bak.$$" "$META"; fail ".meta.yaml became invalid YAML after inserting '$MEMBER' — restored from backup. Add the entry under projects: by hand."; }
+      note "$DRY appended '$MEMBER' to projects: (YAML re-validated OK)"
+    else
+      note "$DRY appended '$MEMBER' to projects: (python3+yaml unavailable — VERIFY the YAML by hand)"
+    fi
   fi
 fi
 
@@ -100,12 +129,26 @@ if [ "$APPLY" -eq 1 ]; then bash "$EJECT" "$TARGET"; else note "$DRY would: bash
 LS_TMPL="$PLUGIN/skills/feature-forge/scripts/loop_state.template.md"
 LS="$TARGET/.handoff/loop/loop_state.md"
 if [ -f "$LS" ]; then note "loop_state.md present — not clobbering"; else
+  # #5: substitute ALL placeholders, not just <MEMBER> (repo/branch/worktree/session_started were left raw).
+  BRANCH="$(git -C "$TARGET" rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)"
+  SESSION_STARTED="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)"
   run "seed .handoff/loop/loop_state.md (kernel-backed pick: hf fleet render $MEMBER) from template" \
-      bash -c "[ -f '$LS_TMPL' ] && sed 's/<MEMBER>/$MEMBER/g' '$LS_TMPL' > '$LS' || true"
+      bash -c "[ -f '$LS_TMPL' ] && sed -e 's|<MEMBER>|$MEMBER|g' -e 's|<BRANCH>|$BRANCH|g' -e 's|<WORKTREE>|$TARGET|g' -e 's|<SESSION_STARTED>|$SESSION_STARTED|g' '$LS_TMPL' > '$LS' || true"
 fi
 
 # ── 4. wire CLAUDE.md / .gitignore / settings (kernel-backed pointer) ───────────────────────────────
 step "4. wire CLAUDE.md / .gitignore / settings.json"
+# #11: the bundled crew (rust-feature-impl + guardian) is Rust/cargo-centric. If this repo is NOT Rust,
+# say so loudly so the agent swaps the verify recipe + the loop's verify-on-resume baseline.
+if [ -f "$TARGET/Cargo.toml" ]; then NONRUST_NOTE=""; else
+  NONRUST_NOTE='
+> **⚠ NON-RUST REPO (no Cargo.toml):** the ejected `rust-feature-impl` recipe + the guardian'"'"'s cargo/
+> no-C checks DO NOT APPLY here. Before the first cycle, replace them with THIS repo'"'"'s real build/
+> test/lint commands, and point the forge-loop verify-on-resume baseline at a gate that actually exists
+> (else the loop has nothing to run). The architect/implementer/guardian flow still applies — only the
+> Rust-specific verification does not.'
+  note "target has no Cargo.toml → emitting a NON-RUST adaptation banner into CLAUDE.md"
+fi
 GI="$TARGET/.gitignore"
 add_ignore() { grep -qxF "$1" "$GI" 2>/dev/null || { [ "$APPLY" -eq 1 ] && printf '%s\n' "$1" >> "$GI"; note "$DRY .gitignore += $1"; }; }
 [ "$APPLY" -eq 1 ] && touch "$GI"
@@ -125,18 +168,46 @@ hf Continuity Ledger Kernel (\`hf init\`); the loop picks the next dep-safe item
 for the cycle counter. Resumable via session-relay-wrap-up/-resume; self-evolving via Phase E.
 **TODO (repo-specific):** fill this repo's NON-NEGOTIABLE invariants + area-prefixes; the bundled
 agent/verification invariants are envctl's pure-Rust no-C/engine-first set — adapt them here.
+${NONRUST_NOTE}
+> **Kernel ledger model (HFTASK-0054):** \`.handoff/ledger.db\` here is a **local, gitignored throwaway**
+> that any CWD-relative \`hf\` verb (\`hf status\`/\`resume\`/\`checkpoint\`) writes — it is **NOT** the
+> witnessed authority. The authoritative open/DAG set is \`hf fleet render ${MEMBER}\` (read-only, run
+> from \$META_ROOT, reads the central FLEET ledger). Don't treat the local db as truth; don't commit it.
 
 ### Toolchain & dependency discipline (meta model — READ before installing anything)
 This repo lives in the **meta** workspace. Toolchains/dependencies are NOT installed globally ad hoc —
 the agent must first understand **how each one is installed and WHERE it lives**, then use it in place:
-- **PATH (bare names)** — meta-built tools resolve by name (e.g. \`hf\`, \`rtk\`, \`grit\`); \`~/.local/bin\`
-  and \`~/.cargo/bin\` hold **symlinks INTO meta** (e.g. \`~/.local/bin/hf\` → \`\$META_ROOT/handoff/target/release/hf\`).
+- **PATH (bare names)** — meta-built tools resolve by name (e.g. \`hf\`, \`grit\`, \`rtk\`). \`~/.local/bin\`
+  holds **meta-built tool symlinks** (e.g. \`~/.local/bin/hf\` → \`\$META_ROOT/handoff/target/release/hf\`).
+  \`~/.cargo/bin\` is **rustup-managed** (cargo/clippy/rustfmt) — NOT a meta dir; only a few meta tools
+  (e.g. \`grit\`) are symlinked there. Don't conflate the two, and don't assume cargo itself is meta-managed.
 - **\$META_ROOT** — resolve workspace paths from the \`.meta.yaml\` marker; never hardcode \`/home/...\`.
 - **Rust** — workspace/cargo deps live in the repo's \`Cargo.toml\`; do not \`cargo install\` global crates to
   satisfy a build. Language toolchains are pinned per repo (\`rust-toolchain.toml\`).
 - **DO NOT** install toolchains/services globally, manage host daemons, or \`cp\` binaries into
   \`~/.cargo/bin\` to "fix" a missing tool — find where it already lives (or build it from its meta repo
   + symlink, the way \`hf\` is). Host service/process management is **outside** meta scope.
+EOF
+  fi
+fi
+
+# #8: write .claude/settings.json with the deterministic ICM session-priming hook (idempotent;
+# never clobber an existing settings.json). The eject only PRINTS this — actually write it here.
+SETTINGS="$TARGET/.claude/settings.json"
+if [ -f "$SETTINGS" ]; then note "settings.json present — not clobbering"; else
+  note "$DRY write .claude/settings.json (deterministic ICM SessionStart priming; no-op without ICM)"
+  if [ "$APPLY" -eq 1 ]; then mkdir -p "$TARGET/.claude"; cat > "$SETTINGS" <<'EOF'
+{
+  "hooks": {
+    "SessionStart": [
+      { "matcher": "startup|resume",
+        "hooks": [
+          { "type": "command",
+            "command": "command -v icm >/dev/null && icm recall-context \"feature-forge resume: prior decisions, resolved errors, gate/parity gotchas for this repo\" --limit 8 2>/dev/null || true" }
+        ] }
+    ]
+  }
+}
 EOF
   fi
 fi
@@ -160,7 +231,9 @@ fi
 # ── 5b. prompt: mint the backlog into hf task cards (the TASK-0044 method) ───────────────────────────
 step "5b. mint cards from the backlog (drives feature-forge-kernel-engineer)"
 TODO="$TARGET/.handoff/loop/MINT-CARDS-TODO.md"
-TASKS_N="$(find "$TARGET/.handoff/tasks" -maxdepth 1 -name '*.task.json' 2>/dev/null | wc -l)"
+# F1: guard the count — `find` on a missing tasks/ (always so in dry-run) exits 1 and, under
+# `set -euo pipefail`, the failing command-substitution pipeline would abort the whole script.
+TASKS_N=0; [ -d "$TARGET/.handoff/tasks" ] && TASKS_N="$(find "$TARGET/.handoff/tasks" -maxdepth 1 -name '*.task.json' 2>/dev/null | wc -l || true)"
 if [ "${TASKS_N:-0}" -gt 0 ]; then
   note "tasks/ already has $TASKS_N card(s) — minted; skipping the prompt"
 elif [ -f "$TODO" ]; then

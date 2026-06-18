@@ -38,9 +38,15 @@ zero context loss — without ever violating the continuity invariants below.
   kernel-owned fields (State-Precedence / Next-Command) elsewhere.
 - **Per-repo `.handoff` is git-committed TEXT ONLY.** Cards (`tasks/*.task.json`), capsule, policy,
   hooks, skills — yes. Binary ledger — never (it lives at `$META_ROOT`).
-- **Cards are minted, not authored.** Use `hf task mint` to produce `handoff.task.v1` cards
-  (`schemas/task.schema.json`); preserve the replay-required fields (`correlation_id`, `role`,
-  `intent_lock`) — omitting them breaks ledger replay.
+- **Cards are minted, not authored.** Produce `handoff.task.v1` cards (`schemas/task.schema.json`)
+  preserving the replay-required fields (`correlation_id`, `role`, `intent_lock`) — omitting them
+  breaks ledger replay. **Contamination caveat (from TASK-0044):** to mint a *member's* backlog into
+  its OWN per-member `tasks/` store, do **NOT** use `hf task mint --from-kb` (it forces a `KBTASK-`
+  prefix into the shared FLEET dir → mixes the member's work into the kernel's loop) and do **NOT**
+  hand-write `intent_lock` (the kernel rejects a mismatched hash). Compute `intent_lock` via the
+  kernel's own `work-order` crate (`compute_intent_lock`, byte-identical to what `hf` verifies) and
+  write `*.task.json` into the member's `.handoff/tasks/` — see a bootstrapped repo's
+  `.handoff/loop/mint-cards.md` for the exact recipe.
 - **Never downgrade; archive, don't delete.** Relocate `hf` per the env-ownership procedure (build
   `--release`, archive any installed copy, symlink into meta, verify, rollback on failure).
 - **Use only real `hf` verbs.** The shipped binary's verbs are
