@@ -20,6 +20,12 @@ set -euo pipefail
 
 # First positional that does NOT start with '-' is the TARGET; everything else (incl. anything
 # after a literal `--`) is forwarded verbatim to `hf init` (--name/--northstar/--role/--plane).
+# Pre-scan for --install-hf (build+symlink hf from meta/handoff if absent, instead of NEEDS-HUMAN).
+# Stripped here so it is NOT forwarded to `hf init`.
+INSTALL_HF=0 ; _args=()
+for a in "$@"; do [ "$a" = "--install-hf" ] && { INSTALL_HF=1; continue; }; _args+=("$a"); done
+set -- "${_args[@]+"${_args[@]}"}"
+
 TARGET="$(pwd)"
 if [ "${1:-}" = "--" ]; then
   shift
@@ -33,10 +39,26 @@ HF_INIT_ARGS=("$@")
 TARGET="$(cd "$TARGET" && pwd)"
 
 if ! command -v hf >/dev/null 2>&1; then
+  if [ "$INSTALL_HF" = "1" ]; then
+    # Self-heal: build hf from meta/handoff + symlink into ~/.local/bin (the sanctioned install).
+    MR="$(cd "$TARGET" 2>/dev/null && while [ "$PWD" != / ]; do [ -f .meta.yaml ] && { echo "$PWD"; break; }; cd ..; done)"
+    if [ -n "$MR" ] && [ -d "$MR/handoff" ]; then
+      echo "  --install-hf: building hf from $MR/handoff …"
+      ( cd "$MR/handoff" && cargo build --release ) || { echo "error: hf build failed" >&2; exit 2; }
+      mkdir -p "$HOME/.local/bin"
+      ln -sf "$MR/handoff/target/release/hf" "$HOME/.local/bin/hf"
+      export PATH="$HOME/.local/bin:$PATH"
+      echo "  ✓ hf installed -> $HOME/.local/bin/hf (ensure ~/.local/bin is on PATH)"
+    else
+      echo "NEEDS-HUMAN: --install-hf set but meta/handoff not found above $TARGET." >&2; exit 2
+    fi
+  fi
+fi
+if ! command -v hf >/dev/null 2>&1; then
   cat >&2 <<MSG
 NEEDS-HUMAN: hf (the Continuity Ledger Kernel) is not on PATH.
 The kernel is the only way to build .handoff/ — it is never hand-rolled.
-Install it from meta/handoff (cargo build/install the hf binary), then re-run this script.
+Install it from meta/handoff (cargo build/install the hf binary, or re-run with --install-hf), then re-run this script.
 MSG
   exit 2
 fi
