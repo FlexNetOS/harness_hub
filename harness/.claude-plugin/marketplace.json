@@ -9,8 +9,8 @@
     {
       "name": "harness",
       "source": "./",
-      "description": "Agent team & skill architect. A meta-skill (/harness:harness) that configures harnesses for your domain/project, defines specialist agents, and generates skills — plus ready-made packaged harnesses (e.g. /harness:meta-plugin (repo-org loop), /harness:rust-port (full-parity Rust port), /harness:feature-forge (design→implement→verify construction crew + Ralph loop)) you can run in place or eject into a repo.",
-      "version": "1.12.0"
+      "description": "Agent team & skill architect. A meta-skill (/harness:harness) that configures harnesses for your domain/project, defines specialist agents, and generates skills — plus ready-made packaged harnesses (e.g. /harness:meta-plugin (repo-org loop), /harness:rust-port (full-parity Rust port), /harness:feature-forge (design→implement→verify construction crew + Ralph loop), and /harness:bootstrap (one-command fresh-repo onboarding to hf + forge-loop)) you can run in place or eject into a repo.",
+      "version": "1.13.0"
     }
   ]
 }

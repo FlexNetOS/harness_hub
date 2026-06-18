@@ -179,8 +179,8 @@
       "doc": "entries/feature-forge.md"
     },
     {
-      "id": "harness-bootstrap",
-      "displayName": "harness-bootstrap (fresh-repo → hf kernel + forge-loop)",
+      "id": "bootstrap",
+      "displayName": "bootstrap (fresh-repo → hf kernel + forge-loop)",
       "category": "orchestrator",
       "status": "beta",
       "summary": "One-shot, idempotent bootstrap that takes a FRESH repo (no harness, no hf) onto the hf Continuity Ledger Kernel AND the forge-loop/feature-forge construction-crew harness. Installs hf if absent (builds meta/handoff + symlinks), registers the repo as an hf fleet member (.meta.yaml), runs handoff-loop-init (hf init + ledger-residency guard), ejects the feature-forge harness and reconciles its file-based .handoff/loop/ with the kernel .handoff/, wires CLAUDE.md/.gitignore/settings, seeds the backlog, and verifies (hf status + hf fleet render). Safe by default (dry-run; --apply to execute), fail-closed. The kernel-backed loop picks via hf fleet render <member> (HFTASK-0054-aware) with a file-based cycle counter.",
@@ -196,8 +196,8 @@
       ],
       "runtime": "multi",
       "hosting": "registry-only",
-      "path": "harness/skills/harness-bootstrap",
-      "doc": "entries/harness-bootstrap.md"
+      "path": "harness/skills/bootstrap",
+      "doc": "entries/bootstrap.md"
     }
   ]
 }
