@@ -1,8 +1,8 @@
 ---
-name: harness-bootstrap
+name: bootstrap
 description: >-
   One-shot bootstrap that takes a FRESH repo (no harness, no hf) onto the hf Continuity Ledger Kernel
-  AND the forge-loop / feature-forge harness, in one idempotent pass (invoked as /harness:harness-bootstrap).
+  AND the forge-loop / feature-forge harness, in one idempotent pass (invoked as /harness:bootstrap).
   ALWAYS use for: "set up the harness in <repo>", "bootstrap <repo>", "add hf + forge-loop to <repo>",
   "install the harness here", "stand up a new repo on the kernel", "onboard <repo> to the loop",
   "set up meta/network-manager". Installs hf if absent (builds meta/handoff + symlinks), registers the
@@ -12,7 +12,7 @@ description: >-
   re-init an already-bootstrapped repo (idempotent, but unnecessary).
 ---
 
-# harness-bootstrap — fresh-repo → hf kernel + forge-loop, in one pass
+# bootstrap — fresh-repo → hf kernel + forge-loop, in one pass
 
 Onboards a brand-new repo (the `meta/network-manager` archetype — may not even be a fleet member yet)
 to the full continuity stack: the **hf Continuity Ledger Kernel** *and* the **forge-loop /
@@ -27,10 +27,24 @@ it does not reinvent them:
 
 …and fills the four gaps a *fresh* repo has that those primitives don't cover on their own.
 
+## Invocation (the simple slash command)
+
+Type it anywhere in meta — the repo is the argument:
+
+```
+/harness:bootstrap <target-repo>            # dry-run preview (changes nothing)
+/harness:bootstrap <target-repo> --apply    # execute
+```
+
+`<target-repo>` is a path or a meta member name (e.g. `network-manager`); pass-through flags
+(`--apply`, `--member`, `--repo`, `--meta-root`) go straight to the script below. With no path, ask
+which repo to bootstrap. This skill simply resolves the target and runs `scripts/bootstrap-repo.sh`
+with the given arguments — dry-run first, then `--apply` after the owner reviews the planned mutations.
+
 ## Run
 
 ```bash
-bash <harness>/skills/harness-bootstrap/scripts/bootstrap-repo.sh <target-repo-dir> \
+bash <harness>/skills/bootstrap/scripts/bootstrap-repo.sh <target-repo-dir> \
      [--apply] [--member NAME] [--repo GIT_URL] [--meta-root PATH]
 ```
 

@@ -44,7 +44,7 @@ note()  { printf '  %s\n' "$*"; }
 run()   { local d="$1"; shift; if [ "$APPLY" -eq 1 ]; then note "$DRY $d"; "$@"; else note "$DRY would: $d"; fi; }
 fail()  { echo "BOOTSTRAP FAIL — $*" >&2; exit 1; }
 
-printf 'harness-bootstrap %s  target=%s  member=%s\n' "$DRY" "$TARGET" "$MEMBER"
+printf 'bootstrap %s  target=%s  member=%s\n' "$DRY" "$TARGET" "$MEMBER"
 
 # ── 0. ensure hf ────────────────────────────────────────────────────────────────────────────────
 step "0. ensure hf (the Continuity Ledger Kernel)"
@@ -154,5 +154,5 @@ else
   note "$DRY verify would run: (cd $TARGET && hf status) ; (cd $META_ROOT && hf fleet render $MEMBER)"
 fi
 
-printf '\n✓ harness-bootstrap %s complete for %s\n' "$DRY" "$MEMBER"
+printf '\n✓ bootstrap %s complete for %s\n' "$DRY" "$MEMBER"
 [ "$APPLY" -eq 1 ] || printf '  Re-run with --apply to execute. Review the planned mutations above first.\n'

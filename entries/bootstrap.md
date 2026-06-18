@@ -1,4 +1,4 @@
-# harness-bootstrap (fresh-repo → hf kernel + forge-loop)
+# bootstrap (fresh-repo → hf kernel + forge-loop)
 
 **Category:** orchestrator · **Status:** beta · **Runtime:** multi
 
@@ -8,10 +8,10 @@ One-shot, idempotent bootstrap that takes a FRESH repo (no harness, no hf) onto 
 
 ```bash
 # preview (dry-run; changes nothing) then execute
-bash harness/skills/harness-bootstrap/scripts/bootstrap-repo.sh <target-repo> [--member NAME] [--repo GIT_URL]
-bash harness/skills/harness-bootstrap/scripts/bootstrap-repo.sh <target-repo> --apply
+bash harness/skills/bootstrap/scripts/bootstrap-repo.sh <target-repo> [--member NAME] [--repo GIT_URL]
+bash harness/skills/bootstrap/scripts/bootstrap-repo.sh <target-repo> --apply
 ```
-Or invoke `/harness:harness-bootstrap` and point it at the repo.
+Or invoke `/harness:bootstrap` and point it at the repo.
 
 ## The six steps (and the four fresh-repo gaps they close)
 
