@@ -2,7 +2,7 @@ name: validate-catalog
 
 on:
   push:
-    branches: [master, main]
+    branches: [master, main, develop]   # develop too, so sync-master can gate on this check
   pull_request:
 
 jobs:
