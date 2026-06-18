@@ -125,6 +125,18 @@ hf Continuity Ledger Kernel (\`hf init\`); the loop picks the next dep-safe item
 for the cycle counter. Resumable via session-relay-wrap-up/-resume; self-evolving via Phase E.
 **TODO (repo-specific):** fill this repo's NON-NEGOTIABLE invariants + area-prefixes; the bundled
 agent/verification invariants are envctl's pure-Rust no-C/engine-first set — adapt them here.
+
+### Toolchain & dependency discipline (meta model — READ before installing anything)
+This repo lives in the **meta** workspace. Toolchains/dependencies are NOT installed globally ad hoc —
+the agent must first understand **how each one is installed and WHERE it lives**, then use it in place:
+- **PATH (bare names)** — meta-built tools resolve by name (e.g. \`hf\`, \`rtk\`, \`grit\`); \`~/.local/bin\`
+  and \`~/.cargo/bin\` hold **symlinks INTO meta** (e.g. \`~/.local/bin/hf\` → \`\$META_ROOT/handoff/target/release/hf\`).
+- **\$META_ROOT** — resolve workspace paths from the \`.meta.yaml\` marker; never hardcode \`/home/...\`.
+- **Rust** — workspace/cargo deps live in the repo's \`Cargo.toml\`; do not \`cargo install\` global crates to
+  satisfy a build. Language toolchains are pinned per repo (\`rust-toolchain.toml\`).
+- **DO NOT** install toolchains/services globally, manage host daemons, or \`cp\` binaries into
+  \`~/.cargo/bin\` to "fix" a missing tool — find where it already lives (or build it from its meta repo
+  + symlink, the way \`hf\` is). Host service/process management is **outside** meta scope.
 EOF
   fi
 fi
@@ -142,6 +154,41 @@ if [ -f "$BL" ]; then note "backlog.md present — not clobbering"; else
 
 - [ ] **TASK-0001:** <replace with the first real work item for ${MEMBER}>
 EOF
+  fi
+fi
+
+# ── 5b. prompt: mint the backlog into hf task cards (the TASK-0044 method) ───────────────────────────
+step "5b. mint cards from the backlog (drives feature-forge-kernel-engineer)"
+TODO="$TARGET/.handoff/loop/MINT-CARDS-TODO.md"
+TASKS_N="$(find "$TARGET/.handoff/tasks" -maxdepth 1 -name '*.task.json' 2>/dev/null | wc -l)"
+if [ "${TASKS_N:-0}" -gt 0 ]; then
+  note "tasks/ already has $TASKS_N card(s) — minted; skipping the prompt"
+elif [ -f "$TODO" ]; then
+  note "MINT-CARDS-TODO present — agent already prompted"
+else
+  note "$DRY .handoff/tasks/ is EMPTY → prompt the agent to mint cards (NOT auto-minted: it needs the"
+  note "       kernel work-order crate + per-member residency — see references/mint-cards.md)"
+  if [ "$APPLY" -eq 1 ]; then mkdir -p "$(dirname "$TODO")"
+    # copy the recipe INTO the target so the reference resolves (the bootstrap skill itself is run
+    # from the hub and is NOT ejected into the repo).
+    [ -f "$HERE/../references/mint-cards.md" ] && cp "$HERE/../references/mint-cards.md" "$TARGET/.handoff/loop/mint-cards.md" && note "$DRY recipe -> .handoff/loop/mint-cards.md"
+    cat > "$TODO" <<EOF
+# NEXT STEP — mint the backlog into hf task cards ($MEMBER)
+
+\`.handoff/tasks/\` is empty. Turn \`.handoff/loop/backlog.md\` into per-member \`handoff.task.v1\`
+cards so the kernel DAG picker / \`hf fleet render $MEMBER\` are real.
+
+**Drive the \`feature-forge-kernel-engineer\` agent** (ejected into \`.claude/agents/\`) to mint them
+using the proven TASK-0044 method — see \`.handoff/loop/mint-cards.md\` (copied here by the bootstrap):
+- generate cards via meta/handoff's \`work-order\` crate (\`compute_intent_lock\` → byte-identical hash),
+- write \`.handoff/tasks/TASK-####.task.json\` into THIS member's store (never the FLEET dir),
+- one card per backlog item with deps/blocked_by from the backlog \`## Order\`,
+- verify: \`hf fleet render $MEMBER\` shows only TASK-*, 0 cross-member leak, FLEET ledger unchanged.
+
+Delete this file once cards are minted. Do NOT use \`hf task mint --from-kb\` (KBTASK prefix →
+FLEET contamination) or hand-write \`intent_lock\` (kernel will reject it).
+EOF
+    note "$DRY wrote $TODO (the agent's prompt to create cards)"
   fi
 fi
 

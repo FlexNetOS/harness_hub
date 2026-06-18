@@ -73,7 +73,26 @@ pointer). Fail-closed (a real error halts; it never fabricates kernel state).
    deterministic ICM session-priming hook. Leaves a **repo-invariants TODO** — the bundled invariants
    are envctl's pure-Rust set and MUST be adapted per repo. *(Gap 4.)*
 5. **Seed the backlog** — `.handoff/loop/backlog.md` stub (replace with the repo's real roadmap).
+5b. **Mint the backlog into hf task cards** — `hf init` leaves `.handoff/tasks/` **empty**; the loop's
+   dependency-DAG / `hf fleet render` aren't real until the backlog is minted into per-member
+   `handoff.task.v1` cards. The script writes a `MINT-CARDS-TODO.md` prompt; **drive the
+   `feature-forge-kernel-engineer` agent** (ejected into `.claude/agents/`) to mint them via the proven
+   **TASK-0044 method** — see `references/mint-cards.md` (work-order-crate `intent_lock`, per-member
+   store, zero FLEET contamination; NOT `hf task mint --from-kb`). This is the "create the task cards"
+   step. *(Cards are not auto-minted: it's kernel-version-specific + contamination-sensitive → agent-driven.)*
 6. **Verify** — `hf status` (in the repo) + `hf fleet render <member>` (from `$META_ROOT`); report.
+
+## Toolchain & dependency discipline (what it teaches the new repo)
+
+A fresh repo's agent must not install toolchains/deps globally on a whim. Step 4's CLAUDE.md pointer
+includes a **toolchain-location** block so the agent understands the meta model *before* installing
+anything: meta-built tools resolve by **bare name on PATH** (`~/.local/bin`/`~/.cargo/bin` hold
+**symlinks INTO meta**, e.g. `hf` → `$META_ROOT/handoff/target/release/hf`); workspace paths resolve
+from **`$META_ROOT`** (never hardcoded); Rust deps live in the repo's `Cargo.toml` (no global
+`cargo install` to satisfy a build); and **host service/process management + global toolchain installs
+are out of scope** — find where a tool already lives (or build it from its meta repo + symlink, the way
+`hf` is) rather than polluting global. (This is *guidance written into the repo*, not symlinks the
+bootstrap creates — the harness slash-commands are already global via the plugin.)
 
 ## The loop model it sets up (kernel-backed + file cycle-counter)
 
