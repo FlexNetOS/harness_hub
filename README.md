@@ -28,6 +28,7 @@ runtime or the toolkit that builds one, it belongs here.*
 | [weave](entries/weave.md) | orchestrator | rust | beta | [doc](entries/weave.md) |
 | [rust-port](entries/rust-port.md) | orchestrator | multi | beta | [doc](entries/rust-port.md) |
 | [code-research](entries/code-research.md) | orchestrator | multi | beta | [doc](entries/code-research.md) |
+| [feature-forge](entries/feature-forge.md) | orchestrator | multi | beta | [doc](entries/feature-forge.md) |
 
 The `harness` toolkit is vendored in-repo at [`harness/`](harness); it now also ships **packaged
 harnesses** (ready-made, runnable, ejectable) as `/harness:<name>` commands — see the
