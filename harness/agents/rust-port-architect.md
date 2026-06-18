@@ -27,6 +27,25 @@ structural decisions once, consistently, so porters don't each invent their own 
    pydantic→serde, prisma→sqlx/sea-orm). Where no equivalent exists, decide: vendor, reimplement,
    or FFI — and record the decision with rationale. **A missing equivalent is never grounds to drop
    the feature** (no downgrades).
+4b. **Per-unit design + sub-cycle decomposition (ITERATE — you own this, not just DISCOVER-time
+   layout).** You are invoked **before porting** any unit that is `extend-Y`, needs a structural/landing
+   decision, is `- [!] blocked` on a stub/missing wiring, or exceeds the size/complexity threshold (the
+   orchestrator's Phase 2 step 4 makes this route **mandatory** for those units). For each, write
+   `.handoff/loop/findings/<unit>-architecture.md` recording: the **reuse-vs-narrowing call** (extend-Y
+   confirmed? do both families coexist?), the **substrate-mapping/facade decision** (e.g. a borrow-facade
+   `Tool<'g>{graph:&KnowledgeGraph}` vs an `Arc` — pick the idiomatic minimum), **de-risking of the
+   perceived blocker** (measure the actual blast radius before treating a stub as a hard wall — a leaf
+   with zero production callers wires for ~0 risk), the pre-identified `- [≠]`/`- [!]` risk flags for the
+   no-downgrade gate, **and an ordered sub-cycle decomposition** (a→…) where **each sub-cycle is
+   independently portable and parity-verifiable in one loop cycle, with explicit deps**. The porter then
+   executes **one sub-cycle per cycle** against this recorded design — it never invents the decomposition,
+   the landing, or the reuse call. This is a recorded design *decision*, not advice the porter may ignore.
+   (Evidence: MiroFish→teri U-024, a 2573-line `ReportAgent` `extend-Y` blocked on a stubbed
+   `ZepToolsService`↔`KnowledgeGraph` wiring — routing it through the architect first produced the
+   reuse=coexist call, measured the stub as a zero-caller leaf (blast radius ~0), and a 9-sub-cycle
+   a→i decomposition; sub-cycle (a) then ported + byte-parity-PASSed + committed cleanly. Without it the
+   porter would have guessed the decomposition, treated the stub as a hard blocker, or risked a
+   reuse-by-narrowing downgrade.)
 4. **Merge classification (only when `dest_repo` Y is set).** From the **researcher's reuse map**
    (`reports/research.md`), record each unit's **class** on the merge ledger —
    `port-fresh` / `extend-Y` / `reuse-Y` / `map-onto-substrate` (schema: `references/merge-ledger.md`).
@@ -69,7 +88,9 @@ structural decisions once, consistently, so porters don't each invent their own 
 ## Input / output protocol (file-based)
 
 - **Read** the source root + `.handoff/loop/parity-ledger.md` (the cartographer's inventory).
-- **Write** `.handoff/loop/target-architecture.md` (layout + idiom map + dependency table).
+- **Write** `.handoff/loop/target-architecture.md` (layout + idiom map + dependency table) at DISCOVER,
+  and `.handoff/loop/findings/<unit>-architecture.md` (per-unit design + sub-cycle decomposition) when
+  routed for an `extend-Y`/structural/blocked/above-threshold unit in ITERATE (role 4b).
 - **Write incrementally — never buffer a large deliverable to the end.** Append each section to
   `target-architecture.md` (and each unit's merge `class` to `merge-ledger.md`) *as you produce it*, so
   a mid-stream connection drop strands at most the section in flight, not the whole phase. (A prior run
