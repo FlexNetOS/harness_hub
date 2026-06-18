@@ -154,7 +154,10 @@ add_ignore() { grep -qxF "$1" "$GI" 2>/dev/null || { [ "$APPLY" -eq 1 ] && print
 [ "$APPLY" -eq 1 ] && touch "$GI"
 add_ignore '.claude/*' ; add_ignore '!.claude/agents/' ; add_ignore '!.claude/skills/'
 add_ignore '.handoff/loop/*.log' ; add_ignore '.handoff/loop/ralph-run-*.log'
-# (ledger residency '.handoff/ledger.db' + '.handoff/*.db' already added by step 2)
+# Ledger residency (ADR-0004 §3.3 rev): the per-repo ledger.db is the gitignored source of record
+# (hf init adds the '.handoff/**/ledger.db' guard in step 2); also ignore its SQLite sidecars + the
+# rvf vector store so only text is committed. A *committed* binary ledger is BANNED.
+add_ignore '.handoff/**/*.db-wal' ; add_ignore '.handoff/**/*.db-shm' ; add_ignore '.handoff/**/*.rvf'
 CLAUDE="$TARGET/CLAUDE.md"
 if grep -q "Harness: feature-forge" "$CLAUDE" 2>/dev/null; then note "CLAUDE.md harness pointer present"; else
   note "$DRY append the kernel-backed harness pointer to CLAUDE.md (adapt invariants to THIS repo):"
@@ -163,16 +166,19 @@ if grep -q "Harness: feature-forge" "$CLAUDE" 2>/dev/null; then note "CLAUDE.md 
 ## Harness: feature-forge (design→implement→verify crew + kernel-backed forge-loop)
 **Trigger:** to add/build/implement/upgrade a feature use \`/feature-forge\`; to run the crew
 continuously over the backlog use \`/forge-loop\`. **Kernel-backed:** \`.handoff/\` is built by the
-hf Continuity Ledger Kernel (\`hf init\`); the loop picks the next dep-safe item via
-\`hf fleet render ${MEMBER}\` (read-only, from \$META_ROOT) and keeps \`.handoff/loop/loop_state.md\`
+hf Continuity Ledger Kernel (\`hf init\`); the loop picks the next dep-safe item with \`hf resume\` /
+\`hf claim\` (which read THIS repo's per-repo ledger + cards) and keeps \`.handoff/loop/loop_state.md\`
 for the cycle counter. Resumable via session-relay-wrap-up/-resume; self-evolving via Phase E.
 **TODO (repo-specific):** fill this repo's NON-NEGOTIABLE invariants + area-prefixes; the bundled
 agent/verification invariants are envctl's pure-Rust no-C/engine-first set — adapt them here.
 ${NONRUST_NOTE}
-> **Kernel ledger model (HFTASK-0054):** \`.handoff/ledger.db\` here is a **local, gitignored throwaway**
-> that any CWD-relative \`hf\` verb (\`hf status\`/\`resume\`/\`checkpoint\`) writes — it is **NOT** the
-> witnessed authority. The authoritative open/DAG set is \`hf fleet render ${MEMBER}\` (read-only, run
-> from \$META_ROOT, reads the central FLEET ledger). Don't treat the local db as truth; don't commit it.
+> **Kernel ledger model (ADR-0004 §3.3 rev + ADR-0052):** \`.handoff/ledger.db\` is this repo's
+> **per-repo witnessed source of record** — \`hf resume\`/\`status\`/\`checkpoint\` read & write it in place.
+> It is **gitignored** (a *git-committed* binary ledger is BANNED — merge conflicts/bloat; \`hf fleet
+> status\` flags a tracked one), and it **auto-syncs** to the central FLEET ledger
+> (\`\$META_ROOT/.handoff/ledger.db\`) via the SessionStop \`hf sync --auto\` hook in \`.claude/settings.json\`.
+> So: keep the per-repo ledger **gitignored** (only its WAL/shm/.rvf sidecars are also ignored); never
+> commit it; the cross-repo board is \`hf fleet render ${MEMBER}\` from \$META_ROOT.
 
 ### Toolchain & dependency discipline (meta model — READ before installing anything)
 This repo lives in the **meta** workspace. Toolchains/dependencies are NOT installed globally ad hoc —
@@ -191,11 +197,14 @@ EOF
   fi
 fi
 
-# #8: write .claude/settings.json with the deterministic ICM session-priming hook (idempotent;
-# never clobber an existing settings.json). The eject only PRINTS this — actually write it here.
+# #8: write .claude/settings.json with (a) deterministic ICM SessionStart priming and (b) the
+# SessionStop FLEET AUTO-SYNC (ADR-0052 / handoff PR #86): `hf checkpoint --auto && hf handoff &&
+# hf sync --auto` rolls THIS member's per-repo ledger events into the central FLEET ledger at every
+# session end — so the gitignored per-repo source-of-record stays reflected centrally with no manual
+# `hf sync`. Idempotent; best-effort (never blocks teardown); graceful no-op when hf/ICM are absent.
 SETTINGS="$TARGET/.claude/settings.json"
 if [ -f "$SETTINGS" ]; then note "settings.json present — not clobbering"; else
-  note "$DRY write .claude/settings.json (deterministic ICM SessionStart priming; no-op without ICM)"
+  note "$DRY write .claude/settings.json (ICM SessionStart priming + SessionStop hf fleet auto-sync — ADR-0052)"
   if [ "$APPLY" -eq 1 ]; then mkdir -p "$TARGET/.claude"; cat > "$SETTINGS" <<'EOF'
 {
   "hooks": {
@@ -204,6 +213,13 @@ if [ -f "$SETTINGS" ]; then note "settings.json present — not clobbering"; els
         "hooks": [
           { "type": "command",
             "command": "command -v icm >/dev/null && icm recall-context \"feature-forge resume: prior decisions, resolved errors, gate/parity gotchas for this repo\" --limit 8 2>/dev/null || true" }
+        ] }
+    ],
+    "Stop": [
+      { "hooks": [
+          { "type": "command",
+            "command": "command -v hf >/dev/null && { hf checkpoint --auto --quiet 2>/dev/null; hf handoff 2>/dev/null; hf sync --auto 2>/dev/null; } || true",
+            "timeout": 90 }
         ] }
     ]
   }

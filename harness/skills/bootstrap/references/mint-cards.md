@@ -43,11 +43,12 @@ with a shortcut.
 - Contamination guard: other members' card counts + the FLEET `ledger.db` are **unchanged**.
 - `bash` the repo's `ci/gates/p7.sh` if present (residency/schema), and `hf doctor` healthy.
 
-## Kernel caveat (HFTASK-0054)
+## Ledger model (ADR-0004 §3.3 rev + ADR-0052)
 
-The shipped `hf` is CWD-relative for the ledger with no `--ledger`/`--member` override. So the **live
-picker verbs** (`hf resume`/`hf claim --next`) cannot serve a member's cards cleanly yet (member dir →
-forbidden per-repo `ledger.db`; `$META_ROOT` → reads the FLEET `HFTASK-*` scope). Until HFTASK-0054
-lands, the forge-loop reads the authoritative open/DAG set via **`hf fleet render <member>`** (read-only)
-and keeps the markdown sub-note path as the live-pick fallback. The cards (the dependency-authority
-substrate) are still correct and delivered now.
+Once minted, the cards + this repo's **per-repo `.handoff/ledger.db`** (the gitignored witnessed
+source of record) drive the loop: `hf resume`/`hf claim` run **in the member dir** read them directly.
+The per-repo ledger **auto-syncs** to the central FLEET ledger at session end via the SessionStop hook
+(`hf checkpoint --auto && hf handoff && hf sync --auto`). Keep the ledger **gitignored** — a
+*git-committed* binary ledger is BANNED (`hf fleet status` flags a tracked one). `HFTASK-0054`'s
+`--ledger`/`HANDOFF_LEDGER` override (landed, PR #85) is for rendering against the shared/central
+ledger — what `hf fleet render <member>` does from `$META_ROOT` for the cross-repo board.

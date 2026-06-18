@@ -96,22 +96,27 @@ bootstrap creates — the harness slash-commands are already global via the plug
 
 ## The loop model it sets up (kernel-backed + file cycle-counter)
 
-A bootstrapped repo runs the **kernel-backed** forge-loop: `.handoff/` is the kernel's (built by
-`hf init`); the loop picks the next dep-safe item via **`hf fleet render <member>`** (read-only, run
-from `$META_ROOT` — the safe authority path while the shipped `hf` is CWD-relative with no
-`--ledger`/`--member` override, kernel item **HFTASK-0054**), and keeps `.handoff/loop/loop_state.md`
-for the cycle counter (the `cycle_budget`/`wrap_every`/`last_wrapup_total`/`cycles_total` schema the
-batch-cadence + loop-state gate read). The markdown sub-note path remains the live-pick fallback.
-When HFTASK-0054 lands a ledger override, picking reverts to `hf claim --next`.
+A bootstrapped repo runs the **kernel-backed** forge-loop on the **per-repo-first + central-rollup**
+model (ADR-0004 §3.3 rev + ADR-0052): `.handoff/` is the kernel's (built by `hf init`); the loop picks
+the next dep-safe item with **`hf resume`/`hf claim`** run *in the member dir* (they read this repo's
+own **per-repo `.handoff/ledger.db`** — the gitignored witnessed *source of record* — plus its cards),
+and keeps `.handoff/loop/loop_state.md` for the cycle counter (the `cycle_budget`/`wrap_every`/
+`last_wrapup_total`/`cycles_total` schema the batch-cadence + loop-state gate read). At every session
+end the **SessionStop auto-sync hook** (`hf checkpoint --auto && hf handoff && hf sync --auto`, written
+into `.claude/settings.json`) rolls this repo's new events into the central FLEET ledger. The
+cross-repo board is `hf fleet render <member>` from `$META_ROOT`; the markdown sub-note path is the
+fallback when hf is absent. (`HFTASK-0054`'s `--ledger`/`HANDOFF_LEDGER` override exists for rendering
+against the shared/central ledger.)
 
 ## Discipline
 - **Compose, don't reinvent** — drive `handoff-loop-init` and the `feature-forge` eject; never
   hand-roll a `.handoff/` (kernel-first) or re-copy what eject already copies.
 - **Safe by default** — dry-run first; `--apply` only after review. Never `--force`; back up
   `.meta.yaml` before editing; never clobber existing kernel/loop state.
-- **Fleet over per-repo ledger** — the per-repo `.handoff/ledger.db` is local + gitignored (residency
-  guard); the witnessed/fleet state is the kernel's. Pick via `hf fleet render`, not a member-dir
-  `hf resume` (which would create a forbidden per-repo ledger — HFTASK-0054).
+- **Per-repo ledger is gitignored + auto-synced** — `.handoff/ledger.db` is this repo's witnessed
+  source of record: **gitignored** (only its WAL/shm/.rvf sidecars too), **never git-committed** (a
+  tracked binary ledger is BANNED — `hf fleet status` flags it), and **auto-rolled** to central by the
+  SessionStop `hf sync --auto` hook. `hf resume`/`hf claim` in the member dir read it directly.
 - **Adapt invariants** — the ejected agent/verification invariants are envctl's; the bootstrap leaves
   a CLAUDE.md TODO so the target repo's real NON-NEGOTIABLEs get filled in before the first cycle.
 
