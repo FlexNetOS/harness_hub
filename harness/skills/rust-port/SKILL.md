@@ -136,6 +136,11 @@ not given (default `dest_repo: none` = port-only); record all in `loop_state.md`
 set, the ITERATE cycle gains the MERGE step and DONE adds the merge conditions, and the orchestrator also
 records `dest_branch`/`dest_worktree`/`dest_base` (Y is a separate repo — all Y writes happen in a
 per-task **worktree** on a **feature branch**, never on Y's main; see `rust-port-merge` §Y git discipline).
+**Localization directive (optional).** If the run is to translate the source's user-facing natural-language
+text to the dest's shipping language (e.g. the owner asks to render MiroFish's Chinese strings in English),
+record `localize: <src>-><dst>` (e.g. `localize: zh->en`); default `localize: none` keeps byte-identical
+string preservation. A non-`none` directive activates the localization-parity discipline (translate
+user-facing text, preserve contract strings, verify at semantic grain) — see `references/localization.md`.
 **On RESUME of a merge run:** fetch Y, rebase `dest_branch` onto `dest_base`, re-index Y, and re-run the
 cross-repo-referencer over the merged set — any `- [x]` merged unit whose Y blast-radius drifted drops to
 `- [~]` for re-verification (Y is mutable; a merge proven against an old Y isn't proven against the new Y).
@@ -249,12 +254,30 @@ only make partial progress durable, never let an incomplete DISCOVER read as com
      already provides is the wasted work the classification removes). Go straight to the parity gate,
      which differentially verifies **Y's existing symbol (or the substrate) against source X**. If it
      diverges, Y was only *partial* → reclassify `extend-Y` and port the missing behavior.
+     - **Verify-only batching (a speed lever, not a gate relaxation).** A `reuse-Y`/`map-onto`
+       verify-only step mutates no code, so the "one specialist (porter) per cycle" rule — which exists
+       to bound *mutation* and keep the merge atomic — does not constrain it. The verifier MAY
+       differentially adjudicate a **batch** of already-landed symbols (e.g. all symbols of one unit, or
+       a contiguous verify-only block) in a single cycle/commit, **provided each symbol still gets its
+       own per-symbol differential verdict** (no rollup shortcut, no "spot-checked the batch"). This is
+       the late-stage pattern where a unit's surface already exists in the dest and only needs proving;
+       batching cuts wall-clock without weakening the gate. A cycle that *ports or mutates* (any
+       `port-fresh`/`extend-Y`) stays one-unit-per-cycle. (Evidence: MiroFish→teri cycles 64–66 batched
+       14 / 3 / 1 already-landed symbols as one verify-only cycle each — per-symbol verdicts intact.)
 5. **Parity gate** — `rust-port-parity-verifier` runs the differential test (source vs Rust over the
    unit's whole contract, **exercising every symbol of the unit** in `symbol-map.md`). A unit `PASS`
    requires every contract behavior to match **and all the unit's symbols to be `- [x]`/`- [≠]`**
    (rollup rule) → mark the unit `- [x]`. Any unverified symbol or divergence → leave `- [~]`/`- [!]`
    with the exact missing behavior + symbol id; do NOT commit a fake `- [x]`. **A dropped symbol or
    downgrade never passes the gate.**
+   - **Dependency-unblock re-scan (accuracy — a `- [!]` is not forever).** A `- [!]` gap is often
+     blocked on *another* symbol/unit ("honest-errors until U-022 is wired"). When a symbol/unit flips
+     **terminal** (`- [x]`/`- [≠]`), re-scan every `- [!]` row whose recorded blocking-reason **named
+     it** — the block may now be liftable. A `- [!]` whose blocker is now terminal but that was never
+     re-evaluated is a stale honest-gap that silently understates coverage. (Evidence: MiroFish→teri —
+     the `interview_agents` leaf honest-errored "until U-022," U-022 went terminal `- [x]` in cycle 62,
+     but the leaf wasn't re-checked until cycle 64 surfaced it; the re-scan makes that automatic.) Also
+     run this scan on RESUME (it is cheap and a multi-session loop accumulates such unblocks).
 6. **MERGE step (only when `dest_repo` Y is set)** — for the unit just marked `- [x]`, **in the Y
    worktree (`dest_worktree` on `dest_branch`)**: `rust-port-cross-repo-referencer` refreshes the touched
    symbols' references → `rust-port-merge-integrator` integrates the unit into Y (class-driven landing,
@@ -277,6 +300,13 @@ Invoke **`session-relay-wrap-up`** — the full wrap-up: stop-checks → Phase E
 `.handoff/loop/HANDOFF.md` → weave `relay:handoff` heartbeat → best-effort cron successor → stop
 (prefer `hf checkpoint`/`hf handoff` when the kernel is reachable). The committed HANDOFF.md is the
 resume signal; a fresh session re-enters via `session-relay-resume`.
+
+**Keep the `loop_state.md` NEXT pointer bounded.** The NEXT-on-resume pointer is the resume contract,
+but appending every session's pointer onto one line grows an unreadable, slow-to-edit mega-line (a
+real per-resume tax in a long loop). Keep only the **current + immediately-prior** pointer inline in
+`loop_state.md`; move older pointers to `findings/next-history.md` (append-only). A smaller live state
+file reads and edits faster every resume, and the full history stays durable — continuity is unchanged,
+only the working-set size shrinks.
 
 ## Phase E: Evaluate & evolve (runs last — at DONE and at HAND OFF)
 
@@ -399,6 +429,11 @@ not close a merge row); reuse-by-narrowing is rejected — next cycle it extends
 - `references/merge-ledger.md` — destination-repo merge ledger schema + landing decisions + merge DONE gate.
 - `references/symbol-map.md` — per-symbol map schema + deterministic harvest + the unit-rollup rule.
 - `references/runtime-constructs.md` — port-and-map decision table for agent-runtime / orchestration
-  subsystems (reimplement vs map-onto `hf`/`weave`/`grit`/`icm`/provider-CLI; no behavior dropped).
+  subsystems (reimplement vs map-onto `hf`/`weave`/`grit`/`icm`/provider-CLI; **+ EMBED-LUA** for
+  intrinsically-dynamic constructs; no behavior dropped).
+- `references/localization.md` — translate user-facing source text to the dest's shipping language
+  (e.g. Chinese→English) without downgrading behavior (string-class taxonomy + semantic-grain parity).
 - `references/eject.md` — install into the port repo.
-- `scripts/loop_state.template.md` · `scripts/eject.sh` · `scripts/ralph-rust-port.sh` (SAFE runner).
+- `scripts/loop_state.template.md` · `scripts/eject.sh` · `scripts/ralph-rust-port.sh` (SAFE runner) ·
+  `scripts/ledger-recount.sh` (deterministic marker recount + token-safe row lookup) ·
+  `scripts/git-hygiene.sh` (worktree/branch/remote audit + guarded cleanup).

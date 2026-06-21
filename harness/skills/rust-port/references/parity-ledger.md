@@ -56,8 +56,9 @@ feature as a **defect**, not a row. `[≠]` is permitted **ONLY** when the sourc
   extras).
 
 `[≠]` is **NEVER** legal as: "the destination's architecture won't use it", "probably unused", "not
-needed for <dest>'s design", "consumes the value directly so the export isn't needed", or
-"`serde::Serialize` covers it" — **for a feature that produces a distinct observable output**: a
+needed for <dest>'s design", "consumes the value directly so the export isn't needed", "it's an
+**optional** / secondary / nice-to-have feature", or "`serde::Serialize` covers it" — **for a feature
+that produces a distinct observable output**: a
 serialization SHAPE (a `to_reddit_format`/`to_dict` producing specific keys), an export format, a file
 sink (rotating-file logging), a CLI flag, a distinct render path. Those are **portable features**, and
 the rule is **a portable feature is ported, not `[≠]`-skipped**. A near-fit `[≠]` that erases an
@@ -70,6 +71,15 @@ cycles 8–9 — U-018's `to_reddit_format`/`to_twitter_format`/`to_dict` were `
 "console-by-design"; both were portable features producing real observable output, both were corrected
 to PORTED, and the U-018 skip had *also* hidden a second downgrade — bio+persona collapsed into one
 field — that the serializers exposed.)
+
+**Optional is not skippable.** An **optional / secondary / "nice-to-have" / behind-a-flag** source
+feature is still a *portable* feature — optionality is about whether a user *enables* it at runtime,
+not whether the port *includes* it. "It's optional" is therefore **never** a `[≠]` ground; the standing
+directive is **all optional features are ported** (port them behind the same feature gate the source
+used, so optionality is preserved as a capability, not erased). (Evidence: MiroFish→teri S-934 dual-LLM
+boost — an optional per-platform LLM config enabled only when `LLM_BOOST_*` is set — was almost
+`[≠]`'d as secondary; it was correctly a TO-PORT, landed as additive per-platform routing with the
+single-platform path byte-unaffected.)
 
 ## Dependency ordering (top = port first)
 

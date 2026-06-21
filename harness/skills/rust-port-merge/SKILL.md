@@ -44,6 +44,36 @@ owner's standing workflow **to Y**:
   allowed method) — the same fail-closed push→PR→self-merge-on-green flow every repo uses.
 - **grit symbol locks** on the Y symbols touched, released on **commit or rollback** (never leak a lock).
 
+## Git hygiene & lifecycle (worktree / branch / remote — keep the surface clean)
+
+A port-and-merge spans many sessions; without hygiene the git surface accrues stale worktrees, merged
+feature branches, and dead remote-tracking refs, and a held PR drifts. Keep it clean — `bash
+scripts/git-hygiene.sh [--base <dest_base>]` audits this surface (worktrees, branches merged-vs-not into
+the base, stale upstream-gone refs) and `--apply` performs only the **safe** cleanups (prune
+missing-dir worktrees, `git branch -d` *merged* branches, `git fetch --prune`); it never deletes an
+unmerged or protected branch and refuses to mutate a dirty tree. The lifecycle:
+
+- **Worktree lifecycle = bounded.** The `dest_worktree` is created at DISCOVER and is meant to be
+  **removed at merge-DONE** once its PR has merged (`git worktree remove <path>` + `git worktree prune`).
+  A worktree that outlives its merged branch is the stale state the script flags. One live `dest_worktree`
+  per active port-and-merge — not one per resume.
+- **Branch deletion after merge.** Once the `dest_branch` PR merges into `dest_base`, delete the local +
+  remote feature branch (the script deletes the *merged* local; `gh pr merge --delete-branch` or `git
+  push origin --delete <branch>` clears the remote). Don't leave merged feature branches accumulating.
+- **One held PR, opened at merge-DONE — not before.** The PR into Y is opened **only at merge-DONE**
+  (DONE gate), not at first cycle; before that the work lives on `dest_branch` with the ledger as the
+  status. If the port is long-running and you want early visibility, open a **draft** PR (clearly marked
+  HELD until the merge ledger is 100%) rather than a ready PR that could auto-merge a partial port.
+- **Remote organization.** Feature branches are namespaced (`port/<source>` or `evolve/<topic>`), pushed
+  every session (after the local fmt/clippy preflight), and pruned after merge. `git fetch --prune` on
+  resume drops refs whose upstream is gone so the local view matches the remote.
+- **Resume-time hygiene check.** On RESUME, in addition to the Y-drift rebase, run the audit
+  (`git-hygiene.sh`) to detect a stale worktree/branch from a prior interrupted session before starting
+  new work — cleanup is part of resume, not a separate chore.
+
+These are organizational only — they never touch a gate, an unmerged branch, or uncommitted work
+(the script is fail-safe: audit by default, merged-only deletes, dirty-tree refusal).
+
 ## The landing decision (record per unit in `merge-ledger.md`)
 
 For each parity-verified unit, decide where it lands in Y — informed by the **researcher's reuse map**
