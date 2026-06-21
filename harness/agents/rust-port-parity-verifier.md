@@ -44,6 +44,17 @@ For the just-ported unit, verify **behavioral parity against the source**:
   `- [~]`/`- [!]`, never wave it through. A green `cargo build` is necessary, not sufficient.
 - **Intentional divergences are explicit.** A deliberate behavior change is only allowed as a
   `- [≠]` row with a recorded rationale + owner approval — never an unflagged "close enough."
+- **Localization parity (only under a `localize:` directive) — semantic, not byte, but NOT weaker.**
+  When `loop_state.md` sets `localize: <src>-><dst>` and the architect classified a string TRANSLATE,
+  verify it at **semantic** grain instead of byte-identity: (1) it fires under the *same* trigger
+  condition, (2) carries the *same* interpolation slots in the same order, (3) is a faithful meaning
+  translation, (4) records the source string, and (5) is genuinely user-facing (no consumer parses it).
+  All five must hold to flip the symbol `- [x]`; a translation that shifts the trigger/interpolation,
+  or a string a consumer actually parses (it was really a contract/PRESERVE string), or an LLM prompt
+  translated without its output contract re-PASSing → **FAIL** (a localization downgrade), exactly as a
+  narrowing FAILs. PRESERVE-class strings keep the ordinary byte-identity check. This adds checks on top
+  of meaning-equivalence — it never lets a behavior-shifting translation through. See
+  `rust-port/references/localization.md`.
 - **CHALLENGE every `- [≠]` — a disguised feature-skip FAILs.** `- [≠]` is the one status that asserts
   "the source has this, the port deliberately does NOT, and that's correct." That assertion is exactly
   the no-downgrade risk, so it is **gated, not waved through**. For each `- [≠]` the porter/architect

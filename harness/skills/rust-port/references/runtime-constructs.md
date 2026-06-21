@@ -43,6 +43,47 @@ preference of the destination.
 | Agent LLM run-loop (the actual model turn) | **DELEGATE** | provider CLIs (`claude`/`codex`/…) | Archon's own model — delegate to subprocess; preserve auth env, binary resolution, streaming stdout, turn/loop-until-signal semantics. |
 | DAG-executor state machine itself (topological layers, loop-until, gates, fresh/shared ctx) | **REIMPLEMENT** (Rust) | — (it IS the runtime core being built) | port fully per the idiom map (see `rust-port-translate` §Agent-runtime); this is the part FlexNetOS lacks. |
 | Provider abstraction (`IAgentProvider`/`ProviderCapabilities`) | **REIMPLEMENT** (Rust trait + enum dispatch) | — | every capability flag, every provider variant, subprocess mgmt (stdin/stdout/streaming, binary resolution, auth). Dropping a provider variant or a capability flag is a downgrade. |
+| Intrinsically-**dynamic** construct: a template/expression engine (jinja2-style), runtime-defined tool/plugin dispatch, a config/user-supplied rules DSL, hot-reloadable behavior | **EMBED-LUA** (mlua) — *only when Rust-native is genuinely awkward/lossy* | embedded sandboxed Lua | the full dynamic contract (every template directive, every runtime-dispatched branch, every rule). A Lua-backed path is **still differentially parity-verified** and is never a stub. See §EMBED-LUA below. |
+
+## EMBED-LUA — embedded scripting for genuinely-dynamic constructs (an upgrade, not a crutch)
+
+A fourth decision verb, alongside REIMPLEMENT / MAP-ONTO / DELEGATE: **EMBED-LUA** maps a source
+construct onto an embedded, sandboxed **Lua** interpreter (`mlua`). It exists because some source
+constructs are *intrinsically dynamic* — a template/expression engine, runtime-defined tool/plugin
+dispatch, a small rules-DSL evaluated at runtime, hot-reloadable behavior — and forcing them into
+static Rust (a hand-rolled mini-interpreter, or a sprawling `match` over runtime-shaped data) is
+*more* lossy and *less* maintainable than preserving the dynamism in a scripting layer. There Lua is a
+genuine **upgrade**: it re-expresses the dynamic behavior faithfully and idiomatically.
+
+**Use EMBED-LUA only when ALL hold** (else it is a downgrade — Rust is the default):
+- the source construct is **runtime-evaluated / dynamic** in a way static Rust expresses awkwardly or
+  lossily (template/expression eval, runtime dispatch table, plugin/rules DSL, hot reload); **and**
+- embedding it as Lua preserves that behavior **more** faithfully + maintainably than the Rust
+  alternative; **and**
+- the architect records the dependency (`mlua`) in the dependency-equivalent table (feature-gate it if
+  the source construct is itself optional).
+
+**Do NOT use EMBED-LUA when:**
+- the logic is leaf/static and perfectly expressible in Rust (a parser, a data transform) — Rust there
+  is safer/faster/clearer; Lua would be a downgrade (lost type-safety, perf, single-language clarity);
+- it would be a way to *avoid* a hard Rust port ("too hard, just script it") — that is a stub-by-Lua,
+  and the no-stub rule forbids it as much as `todo!()`;
+- the source had **no** dynamic/scripting semantics — adding a Lua VM invents complexity the source
+  never had (itself a kind of divergence).
+
+**No-downgrade constraints on every Lua-backed path (upgrades only):**
+- **Still differentially parity-verified.** The `rust-port-parity-verifier` treats EMBED-LUA exactly
+  like REIMPLEMENT — same inputs → same outputs, side-effects, and error behavior over the unit's whole
+  contract. Lua is never "simplified for now" and never drops a branch.
+- **Sandboxed + deterministic.** No `os`/`io`/`package`/network access unless the *source path had
+  exactly that capability*; no wall-clock/RNG unless the source used it (then seed it). The sandbox is
+  the default `mlua` std-lib subset minus ambient authority.
+- **First-class artifact.** The Lua source is committed, reviewed, and lives in the repo — never a
+  fetched or `loadstring`'d blob from outside the build.
+- **Errors map to the Rust error enum.** A Lua runtime error becomes a typed `Result::Err`, never a
+  panic, never a silent empty — same error contract the source exposes.
+- A behavior the Lua path **cannot** fully express is a `- [!]`/`- [≠]` owner-decision (same as any
+  other mapping), never a silent partial.
 
 ## How the architect records it (in `target-architecture.md`)
 
@@ -51,7 +92,7 @@ inherit it (decide once, apply everywhere):
 
 ```
 ### <unit id> — <source subsystem>
-- Decision: MAP-ONTO <substrate> | REIMPLEMENT | DELEGATE
+- Decision: MAP-ONTO <substrate> | REIMPLEMENT | DELEGATE | EMBED-LUA
 - Behaviors preserved: <list the contract behaviors the substrate/impl covers>
 - Substrate gaps: <none | behavior X not expressible -> ledger - [!]/- [≠] <ref>>
 - Parity note: differential test still runs source-vs-Rust over <streaming/concurrency/cancel/...>

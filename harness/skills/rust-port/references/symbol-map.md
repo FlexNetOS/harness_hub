@@ -122,6 +122,31 @@ never read as "no symbols → sweep clean." `Y = 0` over real source code is a *
 recorded. The unit ledger does not depend on AST-indexability, so the symbol gate must never be
 *weaker* than it by silently degrading to an empty denominator.
 
+## Mechanical maintenance (deterministic recount + token-safe edits)
+
+Counting markers by hand and editing a long ledger by eye are the two recurring accuracy/speed sinks in
+a multi-session loop. Two rules + one bundled script remove them:
+
+- **Recount with the bundled script, never by running arithmetic.** `bash
+  scripts/ledger-recount.sh [.handoff/loop]` tallies `[ ] [~] [x] [!] [≠]` across the unit ledger, the
+  symbol map (+ shards), and the merge ledger with a single anchored regex (`^- \[<m>\] `), prints
+  per-file + total + terminal-progress %, and is the **canonical count** written into `loop_state.md` /
+  `DONE`. Hand-tracked "+13/+3" deltas drift from a regex sweep (observed: a session's running math
+  disagreed with the recount because the two used different patterns); the script makes the count one
+  deterministic read so the loop never reconciles two tallies.
+- **Match the exact row token, never a bare substring.** A symbol id appears both as its own row
+  (`- [x] S-877 · …`) *and* inside other rows' prose ("…superseded by S-877…"). A substring grep/edit
+  for `S-877` can hit the wrong line (observed: an `S-877` search matched the `S-820` row whose prose
+  mentioned it). Always anchor on the **row format** — `^- \[.\] <id> ·` — when finding or flipping a
+  marker. `scripts/ledger-recount.sh --find <id>` does exactly this token-safe lookup.
+- **Edit giant lines programmatically.** When a ledger line exceeds the editor's read cap (a packed
+  `loop_state.md` NEXT pointer, a very long symbol row), do not eyeball-edit it — use a targeted
+  string-replace anchored on the exact row token. And keep rows **one-symbol-per-line**: never pack
+  multiple symbols onto a line (it defeats both the recount and the token-safe edit). If the
+  `loop_state.md` NEXT pointer has grown into a many-thousand-char single line, **cap it** — keep only
+  the current + immediately-prior pointer inline and move older pointers to
+  `findings/next-history.md` (a smaller live state file reads/edits faster every resume).
+
 ## Scale — shard the map for large sources (repos ≥ the flagship target)
 
 A flat `symbol-map.md` is fine for hundreds of symbols, but a source the size of Archon (600+ units,
