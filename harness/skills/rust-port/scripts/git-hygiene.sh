@@ -55,17 +55,43 @@ echo; echo "[2] local branches already merged into $BASE (safe to delete)"
 MERGED="$(git branch --merged "$BASE" --format='%(refname:short)' | while read -r b; do is_protected "$b" || echo "$b"; done)"
 [ -n "$MERGED" ] && echo "$MERGED" | sed 's/^/    /' || echo "    (none)"
 
+# Squash/rebase-merge detection: `git branch --merged` only sees ANCESTRY merges, so a branch whose PR
+# was SQUASH-merged (the default on many repos — every PR in this repo) shows as "not merged" forever
+# and is never cleaned (the exact gap that stranded 6 branches here). Use the merged-PR record (one `gh`
+# call, matched locally) as the proof of merge. gh-gated → graceful no-op when ejected to a non-GitHub
+# repo (behavior then identical to before: ancestry-only).
+GH_OK=0; MERGED_HEADS=""
+if command -v gh >/dev/null 2>&1 && git remote get-url origin >/dev/null 2>&1; then
+  MERGED_HEADS="$(gh pr list --state merged --limit 300 --json headRefName -q '.[].headRefName' 2>/dev/null || true)"
+  [ -n "$MERGED_HEADS" ] && GH_OK=1
+fi
+is_squash_merged() { [ "$GH_OK" = 1 ] && printf '%s\n' "$MERGED_HEADS" | grep -qxF "$1"; }
+
+SQUASH_MERGED=""
 echo; echo "[3] local branches NOT yet merged into $BASE (KEPT — never auto-deleted)"
-git branch --no-merged "$BASE" --format='%(refname:short)' | while read -r b; do is_protected "$b" || echo "    $b"; done
+KEPT_ANY=0
+while read -r b; do
+  [ -n "$b" ] || continue; is_protected "$b" && continue
+  if is_squash_merged "$b"; then SQUASH_MERGED="${SQUASH_MERGED}${b}"$'\n'
+  else echo "    $b"; KEPT_ANY=1; fi
+done < <(git branch --no-merged "$BASE" --format='%(refname:short)')
+[ "$KEPT_ANY" = 0 ] && echo "    (none)"
+
+if [ "$GH_OK" = 1 ]; then
+  echo; echo "[2b] NOT ancestry-merged but a SQUASH/rebase PR merged them (gh-confirmed — safe to delete)"
+  [ -n "$SQUASH_MERGED" ] && printf '%s' "$SQUASH_MERGED" | sed '/^$/d;s/^/    /' || echo "    (none)"
+else
+  echo; echo "[2b] squash-merge detection SKIPPED (no gh / no GitHub remote) — ancestry-merged [2] only"
+fi
 
 echo; echo "[4] remote-tracking refs whose upstream is gone (stale)"
 GONE="$(git branch -vv | awk '/: gone\]/{print $1}' | sed 's/^[*+] *//')"
 [ -n "$GONE" ] && echo "$GONE" | sed 's/^/    /' || echo "    (none — run 'git fetch --prune' to refresh)"
 
 if [ "$APPLY" != 1 ]; then
-  echo; echo "audit only. Re-run with --apply to: prune missing-dir worktrees, delete the [2] merged"
-  echo "branches (git branch -d), and 'git fetch --prune'. Unmerged branches & protected branches are"
-  echo "never touched. (Open the PR and let it merge BEFORE expecting a dest_branch to appear in [2].)"
+  echo; echo "audit only. Re-run with --apply to: prune missing-dir worktrees, delete the [2] ancestry-merged"
+  echo "branches (git branch -d), delete the [2b] gh-confirmed squash-merged branches (local git branch -D"
+  echo "+ their remote ref), and 'git fetch --prune'. Branches in [3] & protected branches are never touched."
   exit 0
 fi
 
@@ -80,7 +106,16 @@ git worktree prune -v || true
 if [ -n "$MERGED" ]; then
   echo "$MERGED" | while read -r b; do
     [ -n "$b" ] || continue
-    git branch -d "$b" && echo "  deleted merged branch: $b" || echo "  kept (git refused — not fully merged): $b"
+    git branch -d "$b" && echo "  deleted ancestry-merged branch: $b" || echo "  kept (git refused — not fully merged): $b"
+  done
+fi
+# [2b] squash-merged: ancestry can't confirm, but the gh-merged PR is the proof → force-delete local +
+# delete the remote ref. Only ever reached for branches gh confirmed as merged above.
+if [ -n "$SQUASH_MERGED" ]; then
+  printf '%s' "$SQUASH_MERGED" | sed '/^$/d' | while read -r b; do
+    [ -n "$b" ] || continue
+    git branch -D "$b" && echo "  deleted squash-merged branch (gh-confirmed): $b"
+    git push origin --delete "$b" >/dev/null 2>&1 && echo "    + deleted remote origin/$b" || true
   done
 fi
 git fetch --prune --quiet && echo "  pruned stale remote-tracking refs"
