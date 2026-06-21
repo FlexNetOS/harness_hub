@@ -79,14 +79,19 @@ else
   echo "  ! hf did not set the ledger guard (old hf?) — adding the canonical block as a fallback."
   {
     echo ""
-    echo "# handoff continuity: local ledger is gitignored (ADR-0004 §3.3/§6 rev, HFTASK-0035)"
+    echo "# handoff continuity: local ledger + migration artifacts are gitignored"
+    echo "# (ADR-0004 §3.3/§6 rev, HFTASK-0035; redb cutover HFTASK-0053)"
     echo ".handoff/**/ledger.db"
     echo ".handoff/**/*.db-wal"
     echo ".handoff/**/*.db-shm"
+    echo ".handoff/**/*.sqlite.bak"
+    echo ".handoff/**/*.redb.tmp"
   } >> "$TARGET/.gitignore"
-  echo "  .gitignore += .handoff/**/ledger.db (+ wal/shm)"
+  echo "  .gitignore += .handoff/**/ledger.db (+ wal/shm, redb-cutover *.sqlite.bak/*.redb.tmp)"
 fi
 
 echo "  --- hf status ---"
 hf status 2>&1 | sed 's/^/    /' || echo "    (hf status unavailable)"
 echo "  ✓ .handoff kernel ready at $TARGET (do NOT run 'hf seed' here — it injects handoff's own backlog)."
+echo "  → for the FULL all-in-one (redb-ensure + migrate + auto-loop hooks + --fleet), run the"
+echo "    sibling driver: bash \"\$(dirname \"\$0\")/handoff-loop-init.sh\" $TARGET"

@@ -1,15 +1,55 @@
 ---
 name: handoff-loop-init
 description: >-
-  Builds the FULL .handoff continuity-kernel buildout in ANY repo by DRIVING the portable `hf` kernel
-  (kernel-first; never hand-rolls kernel artifacts). ALWAYS use on "init the handoff kernel", "build
-  .handoff", "set up the continuity kernel", "handoff loop init", "hf init here", "full .handoff
-  buildout". Runs portable `hf init` (handoff PR #81) which builds the ledger + a capsule identifying
-  the repo AS ITSELF + the Tier-A README + packets/tasks/decisions AND the ledger-residency .gitignore
-  guard, then reports `hf status`. Forwards --name/--northstar/--role/--plane. Idempotent +
-  non-destructive (preserves a curated capsule); fail-closed if `hf` is absent (the kernel is the only
+  All-in-one initializer that upgrades, syncs, and deploys the FULL .handoff continuity-kernel into
+  ANY repo (or the whole fleet) from one command, by DRIVING the portable `hf` kernel (kernel-first;
+  never hand-rolls kernel artifacts). ALWAYS use on "init the handoff kernel", "build .handoff", "set
+  up the continuity kernel", "handoff loop init", "hf init here", "onboard a repo to the kernel",
+  "upgrade .handoff", "full .handoff buildout". The all-in-one driver (`handoff-loop-init.sh`):
+  ensures the redb (no-C) `hf`, runs portable `hf init`-or-upgrade (repo self-identifies, handoff
+  PR #81), installs the `.gitignore` residency + redb-migration-artifact guards, runs a FAIL-CLOSED
+  legacy-SQLite→redb `hf migrate` on provably-quiescent repos only (out-of-tree backup, handoff
+  PR #114), deploys the SessionStart/SessionEnd auto-loop hooks, and verifies `hf resume`+`hf drift`.
+  Per-repo + `--fleet`, idempotent, `--dry-run`. A minimal init-only path (`init-handoff-kernel.sh`)
+  remains for just `hf init` + guard + status. Fail-closed if `hf` is absent (the kernel is the only
   way to build the kernel). The kernel-backed counterpart to the file-based `harness-loop-init`.
 ---
+
+# handoff-loop-init — one command, fully-deployed `.handoff` continuity
+
+This is the **all-in-one initializer** for the Continuity Ledger Kernel: where `handoff-loop-run`
+*advances* a repo that already has `.handoff`, this **gets a repo to that state** and keeps it
+current — idempotent, fail-closed, and from a single invocation. It wraps the kernel primitives
+(`hf init`, `hf migrate`, the residency guards, the auto-loop hooks) so the user never chains them.
+
+## Run — the all-in-one driver (recommended)
+
+```bash
+# current repo (default)
+bash <harness>/skills/handoff-loop-init/scripts/handoff-loop-init.sh
+
+# a specific repo, staging the git-text
+bash <harness>/skills/handoff-loop-init/scripts/handoff-loop-init.sh /path/to/repo --commit
+
+# the whole fleet (additive steps everywhere; the migrate step self-defers on any busy repo)
+bash <harness>/skills/handoff-loop-init/scripts/handoff-loop-init.sh --fleet --dry-run
+```
+
+What it does, idempotent and in order: (1) ensure the redb no-C `hf` (rebuild+install from the
+handoff kernel ONLY if PATH `hf` is missing or links `libsqlite`; if no kernel source is reachable
+when ejected, it fails closed with a NEEDS-HUMAN install hint rather than guessing); (2) portable
+`hf init`-or-upgrade (repo self-identifies; existing capsule/cards preserved); (3) `.gitignore`
+residency guards **plus** the redb-cutover migration-artifact guards (`*.sqlite.bak`/`*.redb.tmp`);
+(4) **fail-closed** legacy-SQLite→redb `hf migrate` — only on a provably-quiescent repo (no running
+`hf`/`cargo`/`grit`, no active grit worktree, no held lease lock, ledger not written in the last
+120 s), else DEFERRED and reported; the backup is written **out-of-tree** (handoff PR #114), never
+inside the tracked `.handoff/` tree; (5) deploy the SessionStart/SessionEnd auto-loop hooks (merged
+into `.claude/settings.json`, existing keys preserved); (6) verify `hf resume` + `hf drift`. Flags:
+`--commit`/`--push`, `--no-migrate`, `--no-hooks`, `--build-hf`, `--dry-run` (always offer `--dry-run`
+first for a `--fleet` run).
+
+The driver sources `handoff-lib.sh` (the canonical residency-guard + quiescence helpers) — both are
+vendored beside this skill so `/harness:handoff-loop-init` is self-contained when ejected.
 
 # handoff-loop-init — build the full `.handoff` kernel (via portable `hf init`)
 
