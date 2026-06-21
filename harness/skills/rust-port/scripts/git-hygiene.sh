@@ -84,14 +84,28 @@ else
   echo; echo "[2b] squash-merge detection SKIPPED (no gh / no GitHub remote) — ancestry-merged [2] only"
 fi
 
+# [2c] REMOTE-ONLY stranded branches: the most common drift — you merge a PR from the GitHub UI and the
+# REMOTE branch lingers even though no local copy exists, so [2]/[2b] (local-only) never see it. List
+# every origin branch whose PR was merged and that is not protected. gh-gated (same as [2b]).
+STRANDED_REMOTE=""
+if [ "$GH_OK" = 1 ]; then
+  echo; echo "[2c] REMOTE branches whose PR was merged but were never deleted (gh-confirmed — safe to delete)"
+  while read -r rb; do
+    [ -n "$rb" ] || continue; is_protected "$rb" && continue
+    printf '%s\n' "$MERGED_HEADS" | grep -qxF "$rb" && STRANDED_REMOTE="${STRANDED_REMOTE}${rb}"$'\n'
+  done < <(git ls-remote --heads origin 2>/dev/null | sed 's#.*refs/heads/##')
+  [ -n "$STRANDED_REMOTE" ] && printf '%s' "$STRANDED_REMOTE" | sed '/^$/d;s/^/    /' || echo "    (none)"
+fi
+
 echo; echo "[4] remote-tracking refs whose upstream is gone (stale)"
 GONE="$(git branch -vv | awk '/: gone\]/{print $1}' | sed 's/^[*+] *//')"
 [ -n "$GONE" ] && echo "$GONE" | sed 's/^/    /' || echo "    (none — run 'git fetch --prune' to refresh)"
 
 if [ "$APPLY" != 1 ]; then
-  echo; echo "audit only. Re-run with --apply to: prune missing-dir worktrees, delete the [2] ancestry-merged"
-  echo "branches (git branch -d), delete the [2b] gh-confirmed squash-merged branches (local git branch -D"
-  echo "+ their remote ref), and 'git fetch --prune'. Branches in [3] & protected branches are never touched."
+  echo; echo "audit only. Re-run with --apply to: prune missing-dir worktrees; delete [2] ancestry-merged"
+  echo "(git branch -d), [2b] gh-confirmed squash-merged locals (git branch -D + their remote ref), and"
+  echo "[2c] gh-confirmed stranded REMOTE branches (git push origin --delete); then 'git fetch --prune'."
+  echo "Branches in [3] & protected branches (main/master/develop/current/base) are never touched."
   exit 0
 fi
 
@@ -116,6 +130,13 @@ if [ -n "$SQUASH_MERGED" ]; then
     [ -n "$b" ] || continue
     git branch -D "$b" && echo "  deleted squash-merged branch (gh-confirmed): $b"
     git push origin --delete "$b" >/dev/null 2>&1 && echo "    + deleted remote origin/$b" || true
+  done
+fi
+# [2c] remote-only stranded: delete the remote ref (no local copy exists). gh-confirmed merged above.
+if [ -n "$STRANDED_REMOTE" ]; then
+  printf '%s' "$STRANDED_REMOTE" | sed '/^$/d' | while read -r rb; do
+    [ -n "$rb" ] || continue
+    git push origin --delete "$rb" >/dev/null 2>&1 && echo "  deleted stranded remote branch (gh-confirmed): origin/$rb" || echo "  (could not delete origin/$rb — may already be gone)"
   done
 fi
 git fetch --prune --quiet && echo "  pruned stale remote-tracking refs"
