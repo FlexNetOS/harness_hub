@@ -36,6 +36,11 @@ if [ -z "$BASE" ]; then
   [ -n "$BASE" ] || { git show-ref --verify --quiet refs/heads/develop && BASE=develop; }
 fi
 [ -n "$BASE" ] || { echo "error: could not resolve a base branch; pass --base" >&2; exit 1; }
+# Validate the base actually exists (a bad --base would otherwise spew `fatal: malformed object name`
+# from the merged-check below); accept a local branch or any resolvable ref (e.g. origin/<base>).
+git rev-parse --verify --quiet "refs/heads/$BASE" >/dev/null 2>&1 \
+  || git rev-parse --verify --quiet "$BASE^{commit}" >/dev/null 2>&1 \
+  || { echo "error: base branch '$BASE' does not exist (pass a valid --base)" >&2; exit 1; }
 PROTECTED="main master develop $BASE $CUR"
 is_protected() { for p in $PROTECTED; do [ "$1" = "$p" ] && return 0; done; return 1; }
 
@@ -65,8 +70,10 @@ if [ "$APPLY" != 1 ]; then
 fi
 
 # ---- APPLY (only the safe set) ----
-if ! git diff --quiet || ! git diff --cached --quiet; then
-  echo "refusing --apply: current worktree is dirty. Commit or stash first." >&2; exit 1
+if [ -n "$(git status --porcelain)" ]; then
+  echo "refusing --apply: working tree is dirty (modified / staged / untracked). Commit or stash first." >&2
+  echo "  (untracked files count as dirty — 'git diff' alone would miss them.)" >&2
+  exit 1
 fi
 echo; echo "applying safe cleanups…"
 git worktree prune -v || true
