@@ -22,14 +22,42 @@ for s in "${SKILLS[@]}"; do cp -r "$PLUGIN/skills/$s" "$TARGET/.claude/skills/$s
 for a in "${AGENTS[@]}"; do cp "$PLUGIN/agents/$a.md" "$TARGET/.claude/agents/$a.md"; echo "  agent  -> .claude/agents/$a.md"; done
 echo "  state  -> .handoff/loop/ scaffolded (seed loop_state.md: source_root + rust_target; cartographer seeds parity-ledger.md + symbol-map.md)"
 
+# ── Durability guard (the harness's truth lives on disk and MUST be committed) ──
+# The agents/skills AND the .handoff/loop/*.md ledgers are the continuity contract — a fresh session
+# resumes ONLY from what was committed. A pre-existing DIR-FORM ignore (`.claude/` or `.handoff/`)
+# silently SWALLOWS them, and you cannot rescue it with `!`-exceptions: git refuses to re-include a
+# path whose PARENT DIRECTORY is excluded. So detect it and warn loudly, then verify with check-ignore.
+if git -C "$TARGET" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  GI="$TARGET/.gitignore"
+  if [ -f "$GI" ] && grep -qE '^[[:space:]]*\.claude/?[[:space:]]*$|^[[:space:]]*\.handoff/?[[:space:]]*$|^[[:space:]]*\.handoff/loop/?[[:space:]]*$' "$GI"; then
+    echo ""
+    echo "  ⚠️  DURABILITY WARNING: $GI has a DIR-FORM ignore ('.claude/' or '.handoff/') that will"
+    echo "      SWALLOW the harness agents/skills AND the loop ledgers — git can't re-include a path whose"
+    echo "      parent dir is excluded, so '!.claude/agents/' will NOT rescue it. FIX: change '.claude/'"
+    echo "      to '.claude/*' (contents-form), and ignore only '.handoff/loop/*.log' — never '.handoff/'."
+  fi
+  for p in ".claude/agents/rust-port-architect.md" ".handoff/loop/symbol-map.md" ".handoff/loop/loop_state.md"; do
+    if git -C "$TARGET" check-ignore -q "$p" 2>/dev/null; then
+      echo "  ⚠️  '$p' is currently IGNORED → it would NOT be committed (harness/continuity LOSS)."
+      echo "      Fix .gitignore to contents-form (above), or force-track: git -C <repo> add -f '$p'"
+    fi
+  done
+fi
+
 cat <<'SNIP'
 
 ── Apply these to the target repo yourself (repo-specific; not edited for you) ──
 
-# .gitignore:
+# .gitignore  — CONTENTS-FORM is mandatory ('.claude/*' not '.claude/'; never '.handoff/').
+# WHY: the agents/skills + the .handoff/loop/*.md ledgers are the harness's DURABLE TRUTH — a fresh
+# session resumes only from what was COMMITTED. A dir-form ignore ('.claude/' / '.handoff/') swallows
+# them and cannot be rescued by '!'-exceptions (git won't re-include past an excluded parent dir).
+# If your repo already has a dir-form line, EDIT it to the contents-form below (the eject warns if so).
 .claude/*
 !.claude/agents/
 !.claude/skills/
+# NOTE: do NOT add '.handoff/' or '.handoff/loop/' — the *.md ledgers (loop_state/parity-ledger/
+# symbol-map) must be committed every cycle. Ignore ONLY the transient logs:
 .handoff/loop/*.log
 .handoff/loop/ralph-run-*.log
 

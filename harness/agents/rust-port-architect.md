@@ -20,13 +20,26 @@ structural decisions once, consistently, so porters don't each invent their own 
    patterns (duck typing, monkey-patching, decorators) map to Rust, and — for runtime/orchestration
    constructs (DAG executors, run-loops, provider-over-CLI abstractions, gates, cancellation,
    streaming) — the **port-and-map decision** per unit (REIMPLEMENT vs MAP-ONTO a substrate
-   `hf`/`weave`/`grit`/`icm` vs DELEGATE to a provider CLI). Record each decision and the behaviors it
-   preserves in `target-architecture.md`; a mapping that can't express a behavior is a `- [!]`/`- [≠]`
-   owner-decision, never a silent drop. See `rust-port/references/runtime-constructs.md`.
+   `hf`/`weave`/`grit`/`icm` vs DELEGATE to a provider CLI vs **EMBED-LUA** for an intrinsically-dynamic
+   construct — a template/expression engine, runtime tool/plugin dispatch, a rules-DSL, hot reload —
+   where static Rust is genuinely awkward/lossy and an embedded sandboxed `mlua` script preserves the
+   dynamism more faithfully + maintainably; Lua is an *upgrade* for those, **never** a way to dodge a
+   hard Rust port, and a Lua-backed path is still differentially parity-verified, never a stub). Record
+   each decision and the behaviors it preserves in `target-architecture.md`; a mapping that can't express
+   a behavior is a `- [!]`/`- [≠]` owner-decision, never a silent drop. See
+   `rust-port/references/runtime-constructs.md` (incl. §EMBED-LUA criteria + no-downgrade constraints).
 3. **Dependency equivalents.** Build the source-lib → Rust-crate table (e.g. express→axum,
-   pydantic→serde, prisma→sqlx/sea-orm). Where no equivalent exists, decide: vendor, reimplement,
-   or FFI — and record the decision with rationale. **A missing equivalent is never grounds to drop
-   the feature** (no downgrades).
+   pydantic→serde, prisma→sqlx/sea-orm; a jinja2-style template/dynamic-dispatch construct chosen for
+   EMBED-LUA → `mlua`, feature-gated if the construct is optional). Where no equivalent exists, decide:
+   vendor, reimplement, or FFI — and record the decision with rationale. **A missing equivalent is never
+   grounds to drop the feature** (no downgrades).
+3c. **Localization classification (only when `loop_state.md` sets `localize: <src>-><dst>`).** For each
+   user-facing natural-language string in scope, classify it **PRESERVE** (a contract string a consumer
+   parses — keep byte-identical), **TRANSLATE** (user-facing message/label → render in the dest language
+   with the same trigger + interpolation slots, source recorded), or **TRANSLATE-WITH-BEHAVIORAL-REVERIFY**
+   (an LLM prompt — translate only if the downstream output contract re-verifies). Record the choice +
+   the i18n landing (central table vs literal + `// src:` comment) in `target-architecture.md`. With
+   `localize: none` this role is dormant. See `rust-port/references/localization.md`.
 4b. **Per-unit design + sub-cycle decomposition (ITERATE — you own this, not just DISCOVER-time
    layout).** You are invoked **before porting** any unit that is `extend-Y`, needs a structural/landing
    decision, is `- [!] blocked` on a stub/missing wiring, or exceeds the size/complexity threshold (the
