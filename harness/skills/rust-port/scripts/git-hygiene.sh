@@ -29,9 +29,12 @@ git rev-parse --is-inside-work-tree >/dev/null 2>&1 || { echo "error: not in a g
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 CUR="$(git rev-parse --abbrev-ref HEAD)"
 
-# Resolve the base branch (explicit > origin/HEAD > master > develop).
+# Resolve the base branch (explicit > origin/HEAD > main > master > develop).
 if [ -z "$BASE" ]; then
-  BASE="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@refs/remotes/origin/@@')"
+  # `|| true` inside the substitution: with no remote, `git symbolic-ref` exits non-zero and (under
+  # `set -e -o pipefail`) would otherwise abort the whole script on a fresh/remoteless repo.
+  BASE="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@refs/remotes/origin/@@' || true)"
+  [ -n "$BASE" ] || { git show-ref --verify --quiet refs/heads/main && BASE=main; }
   [ -n "$BASE" ] || { git show-ref --verify --quiet refs/heads/master && BASE=master; }
   [ -n "$BASE" ] || { git show-ref --verify --quiet refs/heads/develop && BASE=develop; }
 fi
@@ -60,22 +63,34 @@ MERGED="$(git branch --merged "$BASE" --format='%(refname:short)' | while read -
 # and is never cleaned (the exact gap that stranded 6 branches here). Use the merged-PR record (one `gh`
 # call, matched locally) as the proof of merge. gh-gated → graceful no-op when ejected to a non-GitHub
 # repo (behavior then identical to before: ancestry-only).
-GH_OK=0; MERGED_HEADS=""
+GH_OK=0; MERGED_HEADS=""; OPEN_HEADS=""
 if command -v gh >/dev/null 2>&1 && git remote get-url origin >/dev/null 2>&1; then
   MERGED_HEADS="$(gh pr list --state merged --limit 300 --json headRefName -q '.[].headRefName' 2>/dev/null || true)"
+  OPEN_HEADS="$(gh pr list --state open   --limit 100 --json headRefName -q '.[].headRefName' 2>/dev/null || true)"
   [ -n "$MERGED_HEADS" ] && GH_OK=1
 fi
 is_squash_merged() { [ "$GH_OK" = 1 ] && printf '%s\n' "$MERGED_HEADS" | grep -qxF "$1"; }
+has_open_pr()      { [ "$GH_OK" = 1 ] && printf '%s\n' "$OPEN_HEADS"   | grep -qxF "$1"; }
 
-SQUASH_MERGED=""
+# [3] genuinely-unmerged branches stay KEPT (never auto-deleted — they hold real work). But split them:
+#   [3a] has an OPEN PR  → in-flight, fine;
+#   [3b] has NO PR       → unmerged work that may be FORGOTTEN — the exact gap that let a vital harness
+#                          upgrade (architect-in-loop) sit unmerged. Surface it loudly for review.
+SQUASH_MERGED=""; NOPR_UNMERGED=""
 echo; echo "[3] local branches NOT yet merged into $BASE (KEPT — never auto-deleted)"
 KEPT_ANY=0
 while read -r b; do
   [ -n "$b" ] || continue; is_protected "$b" && continue
-  if is_squash_merged "$b"; then SQUASH_MERGED="${SQUASH_MERGED}${b}"$'\n'
+  if   is_squash_merged "$b"; then SQUASH_MERGED="${SQUASH_MERGED}${b}"$'\n'
+  elif has_open_pr "$b";      then echo "    $b   [3a] in-flight (open PR)"; KEPT_ANY=1
+  elif [ "$GH_OK" = 1 ];      then echo "    $b   [3b] ⚠ NO open PR — unmerged work, may be FORGOTTEN"; NOPR_UNMERGED="${NOPR_UNMERGED}${b}"$'\n'; KEPT_ANY=1
   else echo "    $b"; KEPT_ANY=1; fi
 done < <(git branch --no-merged "$BASE" --format='%(refname:short)')
 [ "$KEPT_ANY" = 0 ] && echo "    (none)"
+if [ -n "$NOPR_UNMERGED" ]; then
+  echo "    ⚠ [3b] above have unmerged commits and NO PR — a vital upgrade can sit here forgotten."
+  echo "      Review each: open a PR + merge it, or delete if superseded. (Never silently leave it.)"
+fi
 
 if [ "$GH_OK" = 1 ]; then
   echo; echo "[2b] NOT ancestry-merged but a SQUASH/rebase PR merged them (gh-confirmed — safe to delete)"
