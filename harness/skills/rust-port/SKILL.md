@@ -317,6 +317,13 @@ low-risk in-scope edits via the standard PR flow (with a change-history row), pr
 changes in `.handoff/loop/proposed-upgrades.md`. It may only ever *strengthen* the parity/DONE gate,
 never weaken it, and stewards only this harness (scope law). Lightweight at HAND OFF, full at DONE.
 
+**An applied upgrade is not done until it is MERGED.** A harness upgrade left on a pushed-but-unmerged
+branch with no open PR is itself drift — a vital fix nobody is running (observed: an architect-design
+upgrade sat unmerged on a branch with no PR until a later session found it). So every auto-applied
+evolution must reach **opened PR → auto-merge armed** in the same session, not just a pushed branch;
+and the unmerged tail is surfaced — `scripts/git-hygiene.sh` flags any local branch with unmerged
+commits and **no open PR** as `[3b]` ("may be FORGOTTEN"), the cue to open its PR + merge or delete it.
+
 ## DONE gate (no-downgrade, evidence-backed)
 
 Write `.handoff/loop/DONE` only when ALL hold:
