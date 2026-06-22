@@ -234,6 +234,21 @@ only make partial progress durable, never let an incomplete DISCOVER read as com
 1. Read `loop_state.md` + `parity-ledger.md`.
 2. Stop checks: no `- [ ]`/`- [~]` left → go to **DONE gate**; `cycles_this_session >= cycle_budget`
    → **HAND OFF**; `.handoff/loop/STOP` present → stop.
+   - **Enumerate the confirmable tail before any terminal verdict (anti-premature-DONE / anti-false-wall).**
+     "No more units of the *primary* kind" (e.g. device/source WRITE units all exhausted, carved, or
+     owner-walled) is **neither DONE nor NEEDS-HUMAN** — it is the **tail**, and the loop must first
+     enumerate the *adjacent-plane* confirmable work it implies: **(a)** GUI/front-end-parity over an
+     already-ported engine (a tab/panel that surfaces existing engine capability), **(b)** host/runtime-
+     plane verification (a path the engine relies on but that lives on the host — e.g. a kernel-file
+     health check), **(c)** legacy deprecation/hygiene (see the freeze-not-delete rule in
+     `rust-port-merge`), and **(d)** the **READ half** of any carved WRITE unit (the read is usually
+     immediately confirmable + non-destructive even when the write is owner-sensitive — see
+     `references/parity-ledger.md` carve discipline). Only when this tail is also exhausted do DONE /
+     NEEDS-HUMAN apply. A genuine architecture wall (e.g. a substrate re-arch the owner must decide) is
+     still a real `- [!]`/NEEDS-HUMAN — the tail enumeration removes the *false* wall, not the real one.
+     (Evidence: network-control rust-port-merge batch-3 cycles 1–5 — Modem/Switch GUI tabs, host-side
+     bond-LACP verify, legacy-Python deprecation, and a controller-settings READ-half were all
+     confirmable merges *after* device-WRITE was exhausted/carved/owner-walled.)
 3. Pick the top unported unit whose dependencies are `- [x]`.
 4. **Branch on the unit's merge `class`** (port-only runs treat every unit as `port-fresh`):
    - `port-fresh` / `extend-Y` → **Architect** → **porter** ports it FULLY (no stubs, every branch —

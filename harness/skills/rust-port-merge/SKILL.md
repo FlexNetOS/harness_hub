@@ -74,6 +74,19 @@ unmerged or protected branch and refuses to mutate a dirty tree. The lifecycle:
 These are organizational only — they never touch a gate, an unmerged branch, or uncommitted work
 (the script is fail-safe: audit by default, merged-only deletes, dirty-tree refusal).
 
+### Legacy deprecation in the tail — deprecation ≠ deletion (freeze-in-place)
+
+When the merge tail includes deprecating the source/legacy code the port replaces, **deletion is legal
+ONLY for a unit whose every capability is already `- [x]` ported (ported-and-orphaned).** A legacy unit
+that is **un-ported-and-coupled** — its capability is not yet in the Rust port, and/or other still-live
+code depends on it — must be **FROZEN in place**, not deleted: leave it, mark it deprecated, and map it
+to a tracking task for the un-ported capability. **Deleting an un-ported-and-coupled unit is a
+no-downgrade violation** (it removes a capability the port hasn't replaced). Discriminant before any
+delete: *is every behavior of this legacy unit represented by an `- [x]` row, and is it dead (zero live
+callers)?* — yes → delete; otherwise → freeze + track. (Evidence: network-control TASK-0060 PR #75 —
+`scripts/python/omada_api.py` was ported → removed; `homelab_control.py` + `config/distributed.py`
+orchestration were un-ported-and-coupled → FROZEN in place and mapped to LANE TASK-0007/0008.)
+
 ## The landing decision (record per unit in `merge-ledger.md`)
 
 For each parity-verified unit, decide where it lands in Y — informed by the **researcher's reuse map**

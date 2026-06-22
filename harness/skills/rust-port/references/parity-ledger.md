@@ -81,6 +81,39 @@ boost — an optional per-platform LLM config enabled only when `LLM_BOOST_*` is
 `[≠]`'d as secondary; it was correctly a TO-PORT, landed as additive per-platform routing with the
 single-platform path byte-unaffected.)
 
+### Carving a unit — split READ from WRITE; never assert "unlocatable" un-exhausted
+
+A `- [!]` carve of an owner-sensitive, destructive, or hard-to-pin unit must obey two rules:
+
+- **Split the READ half from the WRITE half.** The *read* (GET / decode / status) is almost always
+  immediately confirmable and **non-destructive** even when the *write* (mutating PATCH/PUT/POST,
+  upload, restore) is owner-sensitive. Carve only the part that is genuinely sensitive/unpinnable;
+  the read half is usually a clean `- [x]` the same cycle. A carve that defers the whole unit because
+  the *write* is sensitive silently under-covers a confirmable read.
+- **Never write "not locatable / not in the bundle" without exhausting the proven discovery method.**
+  A carve note may state a leaf is unpinnable **only after** the port's established discovery method
+  has actually been run against it (for a controller-SPA port: the configJson page-controller method —
+  fetch the SPA config manifest, grep the feature key, follow the page-controller JS to the leaf +
+  verbs + body). An *unfounded* "unlocatable" defers a unit that is in fact immediately doable, which
+  reads as coverage progress while being a deferral defect. When in doubt, run the method first, then
+  carve the genuinely-unresolved remainder. (Evidence: network-control TASK-0053b was carved as
+  "leaves are NOT in the loaded su SPA bundle … not yet located"; the controller-global READ leaves
+  WERE pinnable by the same proven configJson method already validated 10×+, and shipped as PR #76 —
+  only the WRITE half was a legitimate carve.)
+
+### Honest verification when the host/env lacks the STATE to live-exercise a path
+
+When a unit's path can't be live-exercised because the **host lacks the hardware/runtime state**
+(e.g. no bonded interface, an unloaded kernel module, no attached device), the honest PASS is a
+**tested pure-parser over the real on-disk/kernel format** — captured fixtures of *each real state*
+the parser must handle (healthy / degraded / wrong-mode) — **plus a live-smoke of the graceful-absence
+path** (what the code does when the state file/device is absent), **with the gap documented explicitly
+in the unit**. This is a legitimate `- [x]` (a tested format-parser + an exercised absence path is real
+verification), and it is **distinct from** "couldn't test it, marked it done" (which is a defect). The
+gap note must name *which* converged path was fixtured-not-live, so a later run with the real hardware
+can re-verify. (Evidence: network-control TASK-0026 host-side bond-LACP — host had no bond, verified via
+`/proc/net/bonding` fixtures + a live-smoke of the absence path, gap documented in PR #73.)
+
 ## Dependency ordering (top = port first)
 
 1. **Leaf units first** — pure functions, value types, utilities with no project-internal deps.
