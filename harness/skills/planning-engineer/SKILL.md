@@ -76,11 +76,21 @@ contents) + **return-value** (each agent returns a one-line verdict the orchestr
 | `plan-test-strategist` | the always-on **`test-coverage`** dimension: map existing tests, author additive RED tests for each accepted plan item, count-verify tests-ran > 0, emit traceability, and hand GREEN implementation to Feature Forge | **prompt P8** | specialist |
 | `plan-verifier` | adversarially **refute** each claim against the source AND **feasibility-gate** each upgrade (the gate) | gate for R3/R5/R8 | specialist |
 | `plan-architect` | synthesize → plan with **ASCII diagrams** + **tool-evaluation** + sequenced upgrade roadmap; promote to docs/ROADMAP + draft ADR | **R4 + R7** | specialist |
+| `plan-filesystem-layout-auditor` | standard OS file/folder organization (FHS/XDG), repo-native Cargo layout, placement boundaries, root clutter, generated/cache/state/log/runtime placement + enforcement-test handoff | **filesystem-layout** | specialist |
+| `plan-dependency-graph-auditor` | the target/dimension dependency DAG via Task-Decoupled Planning: topological ready-set scheduling, node-scoped context, localized SELF-REVISION | **TDP** | specialist |
+| `plan-prompt-architecture-auditor` | prompt/tool/model/runtime coupling review; ADR / no-ADR routing for prompt-induced architecture | **prompt-architecture** | specialist |
+| `plan-memory-vector-intelligence-auditor` | persistent memory + vector/code intelligence: ICM, `.handoff`, source ledgers, GitKB/vector/RAG freshness, cold-start recall proof | **memory-vector** | specialist |
+| `plan-autoresearch-loop-auditor` | constant code+web auto-research cadence, stale-evidence invalidation, graph/web recency refresh | **autoresearch** | specialist |
+| `plan-rules-policy-org-auditor` | Upgrade-Only / No-Downgrades policy, automation-first rules, agent org chart, A2A/agent communication, human-bottleneck replacement | **rules-policy-org** | specialist |
+| `plan-distributed-compute-auditor` | distributed compute across workstation/mobile/edge (Pi/Pi Zero/ESP32)/local+cloud vendors; Rust+Lua control/data planes | **distributed-compute** | specialist |
 | `continuity-steward` | cold-start HANDOFF.md at budget | continuity | shared |
 | `evolution-steward` | Phase 5 self-eval + fail-closed harness self-upgrade | **R6** | shared |
 
 Skills used: `plan-cartography`, `plan-trend-research`, `plan-governance-config`,
-`plan-test-strategy`, `plan-synthesis`, the reused `code-research-verify` (the verifier's refute discipline), `session-relay-wrap-up`,
+`plan-test-strategy`, `plan-synthesis`, the extended axes `plan-filesystem-layout`,
+`plan-dependency-graph`, `plan-prompt-architecture`, `plan-memory-vector-intelligence`,
+`plan-autoresearch-loop`, `plan-rules-policy-org`, `plan-distributed-compute`, the reused
+`code-research-verify` (the verifier's refute discipline), `session-relay-wrap-up`,
 `session-relay-resume`, `harness-evolution`, `icm-memory`. (The 90-day field research applies the
 deep-research *method* — fan-out search → deep-read → adversarial verify → cited synthesis —
 implemented inline by `plan-trend-research`; there is no separate `deep-research` skill to load.)
@@ -102,7 +112,9 @@ Spawn **both** concurrently:
   `<T>.graph.md` + `<T>.diff.md` (delta vs the previous committed snapshot — this is the graph
   *update*) + `reports/codemap-<T>.md`; seeds `dimensions.md` with the dimensions this target needs
   (architecture, data-flow, hotspots/coupling, dead-code, public-API/contracts, perf, correctness/
-  accuracy, tooling, governance+settings+config, test-coverage, …). Built **only** from `git-kb code` JSON (no C dep, no graph DB).
+  accuracy, tooling, governance+settings+config, filesystem-layout, prompt-architecture,
+  memory-vector-intelligence, autoresearch, rules-policy-org, distributed-compute, test-coverage, …),
+  plus the dependency DAG (`plan-dependency-graph`). Built **only** from `git-kb code` JSON (no C dep, no graph DB).
 - `plan-trend-researcher` → `.handoff/loop/plan/research/<T>.trends.md` — best-practices + latest
   trends in a **rolling 90-day window** (compute from today's date; prefer in-window sources, flag
   older), every finding cited + dated.
@@ -111,7 +123,7 @@ Await both, commit `dimensions.md` + the graph + research.
 
 ## Phase 2: ANALYZE (fan-out, parallel)
 
-For each `- [ ]` code dimension, spawn `plan-analyst` (parallel) → `.handoff/loop/plan/findings/<dim>.md`. Also spawn `plan-governance-config-auditor` for the governance+settings+config axis and `plan-test-strategist` for the always-on test-coverage/P8 axis:
+For each `- [ ]` code dimension, spawn `plan-analyst` (parallel) → `.handoff/loop/plan/findings/<dim>.md`. Also spawn `plan-governance-config-auditor` (governance+settings+config), `plan-test-strategist` (always-on test-coverage/P8), and the extended-axis auditors for the axes the target needs — `plan-filesystem-layout-auditor` (OS/repo layout), `plan-dependency-graph-auditor` (TDP target DAG), `plan-prompt-architecture-auditor`, `plan-memory-vector-intelligence-auditor`, `plan-autoresearch-loop-auditor`, `plan-rules-policy-org-auditor`, `plan-distributed-compute-auditor` — each writing `findings/<axis>-<T>.md`:
 falsifiable **CLAIM** rows (each citing `file:line` / symbol / call-path / test) + named **gaps** +
 **UPGRADE** rows each tagged `axis: quality|speed|accuracy|governance+settings+config` with rationale, evidence, blast-radius
 (from the graph) and risk. Analysts query the graph — blast-radius to scope each upgrade's risk,
