@@ -33,11 +33,16 @@ subsystem-by-subsystem until done.
 
 - **Skills** (`harness/skills/`): `planning-engineer` (single-cycle orchestrator) + `plan-loop`
   (continuous Ralph loop) + `plan-cartography` / `plan-trend-research` / `plan-test-strategy` /
-  `plan-governance-config` / `plan-synthesis` (methods), reusing `code-research-verify` + shared `session-relay-wrap-up`/`-resume`,
-  `harness-loop-init`, `harness-evolution`, `icm-memory`. (The 90-day research applies the deep-research
-  *method* inline in `plan-trend-research` — not a separate skill to load.)
+  `plan-governance-config` / `plan-synthesis` (core methods) + the extended axes `plan-filesystem-layout` /
+  `plan-dependency-graph` (TDP target-DAG) / `plan-prompt-architecture` / `plan-memory-vector-intelligence` /
+  `plan-autoresearch-loop` / `plan-rules-policy-org` / `plan-distributed-compute`, reusing `code-research-verify`
+  + shared `session-relay-wrap-up`/`-resume`, `harness-loop-init`, `harness-evolution`, `icm-memory`. (The
+  90-day research applies the deep-research *method* inline in `plan-trend-research` — not a separate skill to load.)
 - **Agents** (shared `harness/agents/`): `plan-cartographer` / `plan-trend-researcher` /
-  `plan-governance-config-auditor` / `plan-analyst` / `plan-test-strategist` / `plan-verifier` / `plan-architect` (specialists) +
+  `plan-governance-config-auditor` / `plan-analyst` / `plan-test-strategist` / `plan-verifier` / `plan-architect` (specialists)
+  + the extended-axis auditors `plan-filesystem-layout-auditor` / `plan-dependency-graph-auditor` /
+  `plan-prompt-architecture-auditor` / `plan-memory-vector-intelligence-auditor` / `plan-autoresearch-loop-auditor` /
+  `plan-rules-policy-org-auditor` / `plan-distributed-compute-auditor` +
   `continuity-steward`, `evolution-steward` (shared).
 - **Testing pillar:** an always-on `test-coverage` dimension (`plan-test-strategist` maps existing tests
   by call-graph reachability, finds coverage gaps, and authors and RED-runs additive suites) → a *Test Strategy & Coverage*
