@@ -16,7 +16,10 @@ make claims you can defend by pointing at the source. Used by `code-research-ana
 ## How to analyze a dimension
 
 1. **Locate the relevant code** via the codemap + `git-kb code` (symbols/callers/callees). Read the
-   actual implementation, follow the call paths — don't infer from names or docs.
+   actual implementation, follow the call paths — don't infer from names or docs. **A call-graph edge
+   is a lead, not evidence:** before citing "X calls Y" as a claim, open the call site and confirm
+   which symbol is actually invoked (same-named symbols — trait vs inherent method, overloads —
+   mis-resolve), then cite the *call site* you read, not the raw edge.
 2. **State falsifiable claims with evidence.** Each material statement →
    `CLAIM | evidence: path:line / symbol / call-path / test | confidence`. (Schema in
    `code-research/references/research-ledger.md`.)
@@ -35,3 +38,9 @@ make claims you can defend by pointing at the source. Used by `code-research-ana
 - **Evidence or it's not a claim** — uncited statements are guesses the verifier will drop.
 - **Surface the surprising** — hidden couplings, implied-but-missing capabilities, unwired abstractions.
 - **Mark low confidence honestly** and hand the verifier a concrete thing to run to settle it.
+- **Severity claims carry a threat model.** Don't label something a vuln / injection / escalation /
+  bypass without stating the exploitability: the untrusted input source, the boundary it crosses, and
+  the sink. If a typed boundary (e.g. interpolated value is a `Uuid`), a harmless sink (output is
+  LLM-bound, not DOM/SQL), or documented intent neutralizes it, claim it as a *style defect / latent
+  footgun / intentional design* — not a vulnerability. Overclaimed severity is the overclaim the gate
+  most often has to downgrade; pre-qualify it at the source.
