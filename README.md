@@ -30,6 +30,7 @@ runtime or the toolkit that builds one, it belongs here.*
 | [code-research](entries/code-research.md) | orchestrator | multi | beta | [doc](entries/code-research.md) |
 | [feature-forge](entries/feature-forge.md) | orchestrator | multi | beta | [doc](entries/feature-forge.md) |
 | [bootstrap](entries/bootstrap.md) | orchestrator | multi | beta | [doc](entries/bootstrap.md) |
+| [planning-engineer](entries/planning-engineer.md) | orchestrator | multi | beta | [doc](entries/planning-engineer.md) |
 
 The `harness` toolkit is vendored in-repo at [`harness/`](harness); it now also ships **packaged
 harnesses** (ready-made, runnable, ejectable) as `/harness:<name>` commands — see the

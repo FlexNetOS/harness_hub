@@ -10,8 +10,8 @@ description: >-
 # Code-Research Verify
 
 The gate that keeps wrong conclusions out of the report. For each claim, **assume it's false and try
-to prove it** from the code. Used by `code-research-verifier`. (The adversarial-verify pattern from
-deep web research, applied to code.)
+to prove it** from the code. Used by `plan-verifier` (and, in the source `code-research` harness, by
+`code-research-verifier`). (The adversarial-verify pattern from deep web research, applied to code.)
 
 ## Method (refute, don't confirm)
 
