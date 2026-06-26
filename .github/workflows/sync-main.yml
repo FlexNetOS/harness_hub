@@ -1,16 +1,16 @@
-name: sync-master
+name: sync-main
 
-# Promote develop → master after develop's catalog validation passes.
+# Promote develop → main after develop's catalog validation passes.
 #
-# develop is the integration / PR-gated branch; master is the default mirror.
+# develop is the integration / PR-gated branch; main is the default mirror.
 # harness_hub's CI is the single `validate` check (validate-catalog → job
 # `validate`, run on develop pushes via validate.yml). This WAITS for that check
-# to be green on the develop tip, then fast-forwards master. Because check-runs
-# are commit-scoped, the same green run that passed on develop applies to master
+# to be green on the develop tip, then fast-forwards main. Because check-runs
+# are commit-scoped, the same green run that passed on develop applies to main
 # on the fast-forward — no bypass token / PAT needed.
 #
-# No-downgrade invariant: develop must be a strict descendant of master, else the
-# job refuses (a diverged master is a human reconciliation — exactly the drift this
+# No-downgrade invariant: develop must be a strict descendant of main, else the
+# job refuses (a diverged main is a human reconciliation — exactly the drift this
 # repo hit on 2026-06-18 — never an auto-sync).
 
 on:
@@ -19,15 +19,15 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write   # fast-forward push to master
+  contents: write   # fast-forward push to main
   checks: read      # read check-runs while waiting
 
 concurrency:
-  group: sync-master
+  group: sync-main
   cancel-in-progress: false   # let each promotion finish; the ancestor guard blocks out-of-order syncs
 
 jobs:
-  ff-master:
+  ff-main:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout develop (full history)
@@ -62,7 +62,7 @@ jobs:
               fi
             done
             if [ -n "$failed" ]; then
-              echo "::error::required check(s) not green:${failed} — refusing to sync master"
+              echo "::error::required check(s) not green:${failed} — refusing to sync main"
               exit 1
             fi
             if [ "$pending" -eq 0 ]; then
@@ -77,17 +77,17 @@ jobs:
             sleep 20
           done
 
-      - name: Fast-forward master to develop
+      - name: Fast-forward main to develop
         run: |
           set -euo pipefail
           git config user.name  "flexnetos-sync[bot]"
           git config user.email "sync@flexnetos.local"
-          git fetch origin master
+          git fetch origin main
           SHA="$(git rev-parse HEAD)"
-          if git merge-base --is-ancestor origin/master "$SHA"; then
-            git push origin "${SHA}:refs/heads/master"
-            echo "✅ master fast-forwarded to $(git rev-parse --short "$SHA")"
+          if git merge-base --is-ancestor origin/main "$SHA"; then
+            git push origin "${SHA}:refs/heads/main"
+            echo "✅ main fast-forwarded to $(git rev-parse --short "$SHA")"
           else
-            echo "::error::develop is not a fast-forward of master — refusing to sync (would not be a clean promotion). Reconcile master↔develop manually."
+            echo "::error::develop is not a fast-forward of main — refusing to sync (would not be a clean promotion). Reconcile main↔develop manually."
             exit 1
           fi

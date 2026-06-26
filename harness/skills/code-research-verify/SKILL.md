@@ -20,6 +20,19 @@ to prove it** from the code. Used by `plan-verifier` (and, in the source `code-r
 2. **Hunt a counter-example:** a branch/early-return that contradicts it, a caller that uses it
    differently (`git-kb code callers`), a config/flag that disables it, a `todo!()`/stub where the
    claim implies a working feature, a test that asserts the opposite.
+   - **If the claim rests on a call-graph EDGE** (`X calls Y` / `Y is called at file:line`), open the
+     cited call site and confirm which symbol is *actually* invoked. Edges are name-resolved and can
+     mis-bind when two symbols share a name (trait method vs inherent method, an overload) — the tool
+     itself is a fallible source, not ground truth. A mis-resolved edge ⇒ `REFUTED` (report it as a
+     caught artifact). (Run evidence: `search@hub.rs:1117 called@995` was refuted — the site calls
+     `self.search_engine.search`, a different `search` symbol.)
+   - **For a severity/security claim** (vuln, injection, escalation, bypass), the counter-example to
+     hunt is *non-exploitability*: a typed boundary (e.g. an interpolated value is a `Uuid`, not free
+     text), a downstream sink that makes it harmless (output is LLM-bound, not DOM), or intentional
+     documented design. Downgrade to `QUALIFIED` ("real mechanism, not exploitable / intentional")
+     rather than `CONFIRMED` — and report the caught overclaim as a caveat, not a fact. (Run evidence:
+     "write-path SQL injection" → QUALIFIED non-exploitable (typed `Uuid`); Handlebars `no_escape`
+     "injection" → QUALIFIED intentional design.)
 3. **Run it when static reading is ambiguous** — execute the function/CLI/endpoint over inputs that
    would expose the claim as false; the target's own tests are a fast oracle. "Exists/compiles" ≠
    "behaves as claimed."
