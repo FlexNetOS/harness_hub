@@ -155,4 +155,35 @@ grep -qiE 'every cycle'                "$EVO_AGENT" || fail "evolution-steward m
 grep -qiE 'never mid-cycle'            "$EVO_AGENT" || fail "evolution-steward must keep the never-mid-cycle rule"
 echo "PASS: self-eval+self-upgrade-every-cycle contract locked (planning-engineer Phase 5 · plan-loop · evolution-steward)"
 
+# ---- prompt-parity: the loop has what the north-star prompt describes (laws · P4 · P5 · P6 · P8) ----
+# (reuses PE_DIR/SKILLS_DIR/HARNESS_ROOT resolved above.)
+TREND_SKILL="$SKILLS_DIR/plan-trend-research/SKILL.md"
+SYNTH_SKILL="$SKILLS_DIR/plan-synthesis/SKILL.md"
+TSTRAT_SKILL="$SKILLS_DIR/plan-test-strategy/SKILL.md"
+ANALYST="$HARNESS_ROOT/agents/plan-analyst.md"
+CARTO="$HARNESS_ROOT/agents/plan-cartographer.md"
+GCAUD="$HARNESS_ROOT/agents/plan-governance-config-auditor.md"
+DDRIVE="$PE_DIR/scripts/differential-drive.sh"
+for f in "$TREND_SKILL" "$SYNTH_SKILL" "$TSTRAT_SKILL" "$ANALYST" "$CARTO" "$GCAUD" "$DDRIVE"; do
+  [ -f "$f" ] || fail "prompt-parity: required file missing: $f"
+done
+# LAW: latest-toolchain standing rule (bun-not-pnpm + shimmy/ruvllm-don't-remove-ollama-until-proven).
+grep -qiE 'ruvllm'        "$PE_SKILL"  || fail "planning-engineer SKILL must carry the shimmy/ruvllm toolchain law"
+grep -qiE '\bbun\b'       "$PE_SKILL"  || fail "planning-engineer SKILL must carry the bun-not-pnpm rule"
+# P4: the control-plane diagram is REQUIRED (not just a prose governance section).
+grep -qiE 'control-plane' "$SYNTH_SKILL" || fail "plan-synthesis must require the control-plane diagram"
+# P5: the UPGRADE row carries the full schema (4th axis + risk-tier + acceptance↔test + reversibility).
+grep -qiE 'governance\+settings\+config' "$ANALYST" || fail "plan-analyst UPGRADE row must include the governance+settings+config axis"
+grep -qiE 'risk-tier'     "$ANALYST"  || fail "plan-analyst UPGRADE row must carry risk-tier APPLY/PROPOSE/REGENERATE"
+grep -qiE 'acceptance'    "$ANALYST"  || fail "plan-analyst UPGRADE row must carry the acceptance criterion (1:1 with the P8 test)"
+grep -qiE 'reversibility' "$ANALYST"  || fail "plan-analyst UPGRADE row must carry NORTH-STAR reversibility"
+# P2: HuggingFace research + cross-repo-reference edges.
+grep -qiE 'hugging ?face' "$TREND_SKILL" || fail "plan-trend-research must list the Hugging Face research tool"
+grep -qiE 'cross-repo'    "$CARTO"    || fail "plan-cartographer must map cross-repo edges via cross-repo-reference"
+# P8: the differential-drive driver EXISTS (was vaporware), is fail-closed, and is wired into the strategy.
+grep -q  'tests-ran must be > 0' "$DDRIVE"      || fail "differential-drive.sh must enforce the fail-closed tests-ran>0 gate"
+grep -qiE 'differential-drive\.sh' "$TSTRAT_SKILL" || fail "plan-test-strategy must drive cases via differential-drive.sh"
+grep -qiE 'tests-ran'     "$TSTRAT_SKILL" || fail "plan-test-strategy must keep the tests-ran>0 count-verify"
+echo "PASS: prompt-parity contract locked (toolchain law · P4 control-plane diagram · P5 row schema · P2 HF/cross-repo · P8 differential-drive + count-verify)"
+
 echo "PASS: plan contract locked — targets rows, graph artifact names, JSON validity, and the documented examples all conform ($jq_note)"
