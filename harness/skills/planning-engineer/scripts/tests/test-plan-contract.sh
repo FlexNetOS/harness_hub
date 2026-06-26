@@ -186,4 +186,14 @@ grep -qiE 'differential-drive\.sh' "$TSTRAT_SKILL" || fail "plan-test-strategy m
 grep -qiE 'tests-ran'     "$TSTRAT_SKILL" || fail "plan-test-strategy must keep the tests-ran>0 count-verify"
 echo "PASS: prompt-parity contract locked (toolchain law · P4 control-plane diagram · P5 row schema · P2 HF/cross-repo · P8 differential-drive + count-verify)"
 
+# ---- extended axes are WIRED, not orphan: each axis skill exists AND the orchestrator references it ----
+# (a packaged skill the orchestrator never spawns is dead weight; this catches an incomplete back-port.)
+for ax in plan-filesystem-layout plan-dependency-graph plan-prompt-architecture \
+          plan-memory-vector-intelligence plan-autoresearch-loop plan-rules-policy-org plan-distributed-compute; do
+  [ -f "$SKILLS_DIR/$ax/SKILL.md" ]      || fail "extended axis skill missing: $ax"
+  [ -f "$HARNESS_ROOT/agents/$ax-auditor.md" ] || fail "extended axis auditor agent missing: $ax-auditor"
+  grep -q "$ax" "$PE_SKILL"              || fail "planning-engineer orchestrator does not wire the $ax axis (orphan skill)"
+done
+echo "PASS: extended-axes wiring locked (7 axis skills + auditors present AND referenced by the orchestrator)"
+
 echo "PASS: plan contract locked — targets rows, graph artifact names, JSON validity, and the documented examples all conform ($jq_note)"
