@@ -1,7 +1,7 @@
 {
   "schema": "./registry.schema.json",
-  "version": "0.6.0",
-  "updated": "2026-06-18",
+  "version": "0.7.0",
+  "updated": "2026-06-25",
   "org": "FlexNetOS",
   "hub": "harness_hub",
   "description": "Catalog of agent harnesses — coding-agent runtimes, harness toolkits, and orchestration frameworks used across the FlexNetOS meta workspace.",
@@ -177,6 +177,31 @@
       "hosting": "registry-only",
       "path": "harness/skills/feature-forge",
       "doc": "entries/feature-forge.md"
+    },
+    {
+      "id": "planning-engineer",
+      "displayName": "planning-engineer (deep planning & architecture loop)",
+      "category": "orchestrator",
+      "status": "beta",
+      "summary": "Packaged harness (/harness:planning-engineer single cycle · /harness:plan-loop continuous): an autonomous, resumable, READ-ONLY Ralph loop that turns a planning target (crate/subsystem/feature-area) into a decision-grade plan. Background fan-out: a plan-cartographer builds a persistent CODE GRAPH from git-kb code JSON (symbols + call edges + data-flows) with derived graph intelligence (centrality/hotspots, blast-radius, dead code, cycles, layering, public-API) while a plan-trend-researcher does deep web research over a rolling 90-day window (cited+dated). Analysts produce file:line-cited gaps + upgrades tagged quality/speed/accuracy; an adversarial plan-verifier refutes each claim and feasibility-gates each upgrade against the source + repo invariants; a plan-architect synthesizes a verdict-first plan with ASCII architecture diagrams, a sequenced upgrade roadmap, and a tool-evaluation, promoted to docs/ROADMAP + a draft ADR. Self-evaluates and self-upgrades every cycle (fail-closed).",
+      "tags": [
+        "planning",
+        "architecture",
+        "code-graph",
+        "graph-intelligence",
+        "deep-research",
+        "adversarial-verify",
+        "gap-analysis",
+        "test-strategy",
+        "packaged",
+        "ralph-loop",
+        "read-only"
+      ],
+      "runtime": "multi",
+      "hosting": "registry-only",
+      "path": "harness/skills/planning-engineer",
+      "notes": "Packaged harness in the harness plugin (harness/skills/planning-engineer + plan-loop + plan-cartography/plan-trend-research/plan-test-strategy/plan-synthesis methods, reusing code-research-verify + shared session-relay-*/harness-loop-init/harness-evolution/icm-memory; 8 agents = 6 specialists plan-{cartographer,trend-researcher,analyst,test-strategist,verifier,architect} + 2 shared continuity-steward/evolution-steward). Hybrid sub-agent mode (background fan-out, file-based ledger under .handoff/loop/plan/), all agents model:opus. Read-only on the target's production code; writes plans/graph under .handoff/loop/plan/ + docs/ROADMAP + draft ADRs only. Testing pillar: an always-on test-coverage dimension (plan-test-strategist maps tests by call-graph reachability + designs the suite) emits a Test Strategy & Coverage plan section + a Feature-Forge test-build handoff (the loop plans tests; Feature Forge builds + runs them — read-only preserved); the harness ships hermetic self-tests (scripts/tests/test-plan-{eject,loop-state,contract}.sh) wired into envctl's harness-scripts + loop-state CI gates. Invoke /harness:planning-engineer (one cycle) or /harness:plan-loop (continuous); ejectable via skills/planning-engineer/scripts/eject.sh; external read-only runner ralph-plan.sh. Hand-authored sibling instance also lives in envctl/.claude (ejected). Code graph built ONLY from git-kb code JSON — no C dep, no graph DB (honors the no-C-in-trust-boundary invariant).",
+      "doc": "entries/planning-engineer.md"
     },
     {
       "id": "bootstrap",

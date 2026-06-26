@@ -1,7 +1,7 @@
 {
   "name": "harness",
-  "description": "The team-architecture factory for Claude Code — a meta-skill (/harness:harness) that turns a domain description into an agent team and the skills they use, with six pre-defined team-architecture patterns (Pipeline, Fan-out/Fan-in, Expert Pool, Producer-Reviewer, Supervisor, Hierarchical Delegation). Also ships ready-made packaged harnesses you can run in place or eject into a repo — e.g. /harness:meta-plugin (repo-org loop), /harness:rust-port (full-parity Rust port), and /harness:feature-forge (design→implement→verify construction crew + Ralph loop), and /harness:bootstrap (one-command fresh-repo onboarding to hf + forge-loop). Claude Code용 팀 아키텍처 팩토리: 도메인 한 문장을 에이전트 팀과 스킬 세트로 변환하는 메타 스킬.",
-  "version": "1.15.0",
+  "description": "The team-architecture factory for Claude Code — a meta-skill (/harness:harness) that turns a domain description into an agent team and the skills they use, with six pre-defined team-architecture patterns (Pipeline, Fan-out/Fan-in, Expert Pool, Producer-Reviewer, Supervisor, Hierarchical Delegation). Also ships ready-made packaged harnesses you can run in place or eject into a repo — e.g. /harness:meta-plugin (repo-org loop), /harness:rust-port (full-parity Rust port), and /harness:feature-forge (design→implement→verify construction crew + Ralph loop), and /harness:bootstrap (one-command fresh-repo onboarding to hf + forge-loop), and /harness:planning-engineer (evidence-backed planning/architecture loop). Claude Code용 팀 아키텍처 팩토리: 도메인 한 문장을 에이전트 팀과 스킬 세트로 변환하는 메타 스킬.",
+  "version": "1.16.0",
   "author": {
     "name": "robin",
     "url": "https://github.com/revfactory"
@@ -32,6 +32,9 @@
     "repo-organization",
     "feature-forge",
     "construction-crew",
-    "rust-port"
+    "rust-port",
+    "planning-engineer",
+    "architecture-planning",
+    "code-graph"
   ]
 }
