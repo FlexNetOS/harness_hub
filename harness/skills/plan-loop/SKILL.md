@@ -30,6 +30,22 @@ head — write it down every iteration.** State precedence: **Git > `.handoff/lo
 views**; when a `hf` witnessed ledger is present, it outranks the markdown and the markdown is
 corrected to it.
 
+## Source-of-truth, transport, and no-downgrade rule
+
+The packaged copy in `harness_hub` is the reusable source-of-truth. Ejected target copies
+(`.claude/`, `.agents/`, `.codex/`, or repo-root script mirrors) are downstream instances and must be
+re-synced from the package when the package is upgraded. Preserve the PromptHub owner intent that
+created this harness: run the loop from the harness/control repo, write only planning artifacts into
+target repos, and keep the foreground Codex/Claude chat available for orchestration.
+
+When a cycle needs Claude Opus background work from a Codex foreground, **do not silently downgrade
+the model or pin an unsupported direct model route**. Dispatch the five required Opus 4.8 background
+lanes through weave with `scripts/plan-weave-dispatch.sh`: `code-graph`, `web-trends`, `governance`,
+`settings-config`, and `rusty-idd-north-star` (or the target-specific north-star lane when ejected).
+Record the JSONL dispatch ledger under `weave-dispatch/` and the `weave_dispatch` field in
+`loop_state.md`. If no weave/Opus route exists, write `NEEDS-HUMAN`; do not replace it with a cheaper
+or unsupported lane.
+
 ## Durable state (the loop's memory) — all under `.handoff/loop/plan/`
 Namespaced under `.handoff/loop/plan/` (NOT the flat `.handoff/loop/` — that is forge-loop's; this
 mirrors the `.handoff/loop/rust-port/` namespacing precedent). Lay it down with `harness-loop-init`.
@@ -38,18 +54,30 @@ mirrors the `.handoff/loop/rust-port/` namespacing precedent). Lay it down with 
   auto-run). Auto-derived (see below).
 - **`dimensions.md`** — per-target dimension ledger (cartographer-owned, verifier-gated).
 - **`loop_state.md`** — counters: `cycles_this_session`, `cycles_total`, `cycle_budget`, `wrap_every`,
-  `last_wrapup_total`, `session_started` (UTC, passed in — never call Date.now), `planning_target`,
-  `target_root`, `recency_window_days`, `graph_snapshot`, `last_item`, `status`.
+	  `last_wrapup_total`, `session_started` (UTC, passed in — never call Date.now), `planning_target`,
+	  `target_root`, `recency_window_days`, `graph_snapshot`, `target_dag`, `weave_dispatch`,
+	  `agent_run_ledger`, `risk_policy`, `agent_backend_matrix`, `agent_interop`, `last_item`, `status`.
+- **Per-instance namespaces** — for parallel/weave runs, each target/run MAY have
+  `.handoff/loop/plan/instances/<run-id>/` as the writable working namespace. The root files are the
+  authoritative roll-up view. A root `DONE`/`status: COMPLETE` is illegal unless `targets.md` has been
+  reconciled from all instances, every root target is terminal, and `plan-artifact-gate.sh` passes.
 - **Per-cycle artifacts** — `graph/<T>.*`, `research/<T>.trends.md`, `findings/<dim>.md` +
-  `verdicts.md`, `reports/codemap-<T>.md` + `<T>-plan.md`, `evaluation.md`.
+	  `verdicts.md`, `reports/codemap-<T>.md` + `<T>-plan.md`, `evaluation.md`.
 - **Sentinels**: `DONE`, `NEEDS-HUMAN`, `STOP`, `WRAP-UP-OWED`.
 
 ## Target backlog (`targets.md`) — auto-derived, owner-overridable
 If `targets.md` does not exist, the first cycle's `plan-cartographer` **auto-derives** it by
-enumerating the repo's Cargo workspace members + major modules, one `- [ ] <T>: <one-line>` each
-(keep targets small & independent — one crate/subsystem per item). An **explicit owner-supplied
-target list** in the invocation OVERRIDES the auto-derived list for that run. DONE scope = every
-target in `targets.md` planned + verified.
+enumerating the repo's Cargo workspace members + major modules, plus control-plane inputs such as
+`.meta.yaml`, `AGENTS.md`/`CLAUDE.md`, `.codex/config.toml`, prompt/source docs, and existing
+`.handoff/loop/plan/instances/*` roll-ups. One target row is `- [ ] <T>: <one-line>` (keep targets
+small & independent — one crate/subsystem per item). An **explicit owner-supplied target list** in the
+invocation OVERRIDES the auto-derived list for that run. DONE scope = every target in `targets.md`
+planned + verified.
+
+The cartographer also maintains `graph/target-dag.json` and `graph/target-dag.md` using
+Task-Decoupled Planning (TDP): nodes, edges, ready-set, topological order, and localized
+`SELF-REVISION` when a verifier refutes an upstream claim. Pick from the ready-set first; fall back to
+top unchecked only when the DAG is absent or inconclusive, and record that fallback in `loop_state.md`.
 
 > **hf-aware (optional):** if `hf` is on PATH and the ledger-residency guard holds, you MAY mint
 > planning targets as cards and pick via `hf resume --json` (as forge-loop does). Otherwise use the
@@ -61,16 +89,18 @@ target in `targets.md` planned + verified.
 2. **Phase-0 stop checks (read ALL sentinels first, in order):**
    - `.handoff/loop/plan/STOP` → **halt immediately**, no re-fire (human kill switch; top priority).
    - `.handoff/loop/plan/NEEDS-HUMAN` → stop and surface for a human; do not auto-pick around it.
-   - `.handoff/loop/plan/DONE` **OR** completion confirmed (every target `- [x]`/`- [!]`) → **DONE**:
-     report, no re-fire.
+	  - `.handoff/loop/plan/DONE` **OR** completion confirmed (every target `- [x]`/`- [!]`) → first run
+	    `scripts/plan-artifact-gate.sh .handoff/loop/plan`; only a PASS may become **DONE**. A zero-target
+	    or nonterminal root roll-up writes `NEEDS-HUMAN`, not DONE.
    - `.handoff/loop/plan/WRAP-UP-OWED` → a batch boundary came due → **run the batch boundary now**
      (below) BEFORE picking another target.
    - **Batch boundary due** — `cycles_total - last_wrapup_total >= wrap_every` → run the boundary,
      then continue if still under `cycle_budget`.
    - `cycles_this_session >= cycle_budget` → **HAND OFF**: invoke `session-relay-wrap-up`, then stop.
-3. **Pick** the next target: the top unchecked unblocked `- [ ] <T>` in `targets.md`. A `- [!!]`
-   SUPERVISED target → **REFUSE to auto-run**: write `.handoff/loop/plan/NEEDS-HUMAN` (target id +
-   why), do not pick it, stop.
+	3. **Pick** the next target: the next unblocked ready-set node in `graph/target-dag.json`; if the DAG
+	   is absent/inconclusive, use the top unchecked unblocked `- [ ] <T>` in `targets.md` and record the
+	   fallback. A `- [!!]` SUPERVISED target → **REFUSE to auto-run**: write
+	   `.handoff/loop/plan/NEEDS-HUMAN` (target id + why), do not pick it, stop.
 4. **Run ONE planning cycle** on `T` via the `planning-engineer` orchestrator: cartographer ‖
    researcher (fan-out) → analysts (incl. `plan-test-strategist` on the always-on `test-coverage`
    dimension) → verifiers (gate) → architect → **`evolution-steward` self-eval + self-upgrade
@@ -83,7 +113,7 @@ target in `targets.md` planned + verified.
 5. **Write state back:** tick `targets.md` (`- [x]` only when the plan is complete AND its dimensions
    are verified `- [x]`; `- [~]` if in-flight; `- [!]` blocked). Increment `cycles_this_session` and
    `cycles_total`, update `planning_target`/`last_item`/`status` in `loop_state.md`, append a one-line
-   progress note. Commit the `.handoff/loop/plan/` update (text only).
+	   progress note. Commit the `.handoff/loop/plan/` update (text only).
 6. **Re-fire silently** (see Self-pacing). **No per-target pause/summary** — write to
    `.handoff/loop/plan/` and go straight to the next target. A consolidated user-facing summary is
    produced ONLY at the batch boundary (`wrap_every`) and at HAND OFF.
@@ -146,8 +176,10 @@ NEEDS-HUMAN → reset `cycles_this_session`), then run the iteration body normal
 
 ## Stop conditions & sentinel write semantics (end the loop — no re-fire)
 - **DONE** — only when completion is confirmed AND the cartographer's **pre-DONE completeness sweep**
-  re-derives each planned target's expected surface from its graph and finds nothing major unexamined.
-  A partial/zero re-derivation → INCONCLUSIVE → write `NEEDS-HUMAN`, not DONE.
+	  re-derives each planned target's expected surface from its graph and finds nothing major unexamined.
+	  A partial/zero re-derivation or an artifact-gate failure → INCONCLUSIVE → write `NEEDS-HUMAN`, not
+	  DONE. `status: COMPLETE` with zero parsed target rows or only `- [~]` rows is a hard failure, not a
+	  successful empty run.
 - **NEEDS-HUMAN** — an unresolvable verifier gate, any `- [!!]` SUPERVISED target, or a
   progress-blocking structural harness upgrade. Stop and surface.
 - **STOP** — the human kill switch: halt re-fire immediately, ahead of all checks.

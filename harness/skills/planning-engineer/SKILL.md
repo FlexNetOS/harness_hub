@@ -27,6 +27,24 @@ plan/graph artifacts under `.handoff/loop/plan/`, additive RED test suites (the 
 For a CONTINUOUS run over a backlog of targets, the `plan-loop` skill wraps this one cycle in the
 Ralph loop. This skill IS one cycle.
 
+## Source-of-truth, upstream intent, and transport (upgrade-only)
+
+- The packaged `harness_hub` copy is the reusable source of truth. Target repos (including envctl)
+  carry ejected mirrors under `.claude/` / `.agents/`; mirror drift is repaired by upgrading this
+  package first, then re-ejecting/syncing downstream. Do not treat a downstream mirror as the new
+  contract without copying the proven upgrade back here.
+- Preserve the PromptHub owner intent: run the planning harness from the harness/control repo, keep
+  the human foreground Codex/Claude chat interactive, and write only planning artifacts into target
+  repos. Product code remains read-only except additive RED tests.
+- Strict upgrade-only: do not downgrade a model, route, prompt, test gate, artifact gate, or source
+  ledger to make a run easier. Missing support is a `NEEDS-HUMAN` finding or a package upgrade, not a
+  silent fallback.
+- When foreground Codex cannot directly pin a supported background Opus model, dispatch the
+  background lanes over weave with `scripts/plan-weave-dispatch.sh` instead of downgrading. The
+  required lane set is `code-graph`, `web-trends`, `governance`, `settings-config`, and
+  `rusty-idd-north-star`; record JSONL under `.handoff/loop/plan/weave-dispatch/` and summarize it
+  in `loop_state.md` `weave_dispatch`.
+
 ## Standing laws (non-negotiable, every cycle)
 
 These bind every phase and every agent in this harness; a plan or upgrade that violates one is a
@@ -62,8 +80,12 @@ Per phase:
 | 4 Synthesize | Sub-agent, **sequential** | architect → plan + ASCII diagrams + tool-eval |
 | 5 Self-eval | Sub-agent, **sequential** | evolution-steward → evaluate this cycle, queue upgrades |
 
-All `Agent` calls use `model: "opus"`. Data transfer is **file-based** (pass artifact PATHS, never
-contents) + **return-value** (each agent returns a one-line verdict the orchestrator reduces).
+All `Agent` calls use `model: "opus"` when the runtime supports that route. Codex foreground sessions
+that cannot directly pin the required Claude Opus background lane MUST use the weave dispatcher above
+(`claude-opus-4-8` capability in `plan-weave-dispatch.sh`) rather than downgrading. A missing weave
+route, missing lane acknowledgement, or missing dispatch JSONL is a `NEEDS-HUMAN`/blocked finding.
+Data transfer is **file-based** (pass artifact PATHS, never contents) + **return-value** (each agent
+returns a one-line verdict the orchestrator reduces).
 
 ## Agents (in the plugin's shared `harness/agents/` pool)
 
@@ -101,9 +123,14 @@ Decide mode (initial / **resume** via `session-relay-resume` / **partial-redo-on
 **new** — archive prior artifacts to `.handoff/loop/plan/_done/` on a new unrelated target). The
 orchestrator needs the **planning target** `T` and its **target_root** (abs path of the subsystem) —
 if not supplied, the `plan-cartographer` auto-derives `targets.md` from the repo's Cargo workspace
-members + major modules and the loop picks the next `- [ ]`. Record `T`, `target_root`,
-`recency_window_days: 90` in `loop_state.md`. (Read-only target: no build required to start, but the
-verifier may run it — note the toolchain.)
+members + major modules, `.meta.yaml`, `AGENTS.md`/`CLAUDE.md`, `.codex/config.toml`, PromptHub
+source prompts/briefs, existing `.handoff/loop/plan/instances/*`, and other committed planning
+artifacts; the loop picks the next target from the target-DAG ready-set before falling back to the
+next `- [ ]` row. Record `T`, `target_root`, `recency_window_days: 90`, `target_dag`,
+`source_ledger`, `agent_run_ledger`, `risk_policy`, `agent_backend_matrix`, `agent_interop`,
+`prompt_architecture`, `memory_vector_intelligence`, `autoresearch`, `rules_policy_org`,
+`distributed_compute`, `weave_dispatch`, and `artifact_gate` in `loop_state.md`. (Read-only target:
+no build required to start, but the verifier may run it — note the toolchain.)
 
 ## Phase 1: MAP + RESEARCH (fan-out, parallel) — `run_in_background:true`
 
@@ -114,7 +141,7 @@ Spawn **both** concurrently:
   (architecture, data-flow, hotspots/coupling, dead-code, public-API/contracts, perf, correctness/
   accuracy, tooling, governance+settings+config, filesystem-layout, prompt-architecture,
   memory-vector-intelligence, autoresearch, rules-policy-org, distributed-compute, test-coverage, …),
-  plus the dependency DAG (`plan-dependency-graph`). Built **only** from `git-kb code` JSON (no C dep, no graph DB).
+  plus the dependency DAG (`plan-dependency-graph`). Built **only** from `git-kb code` JSON (no C dep, no graph DB): record `git-kb code doctor`, `git-kb code index`, and graph/code query JSON evidence (`git-kb code query` or equivalent) so a stale or absent index is a finding, not a silent pass.
 - `plan-trend-researcher` → `.handoff/loop/plan/research/<T>.trends.md` — best-practices + latest
   trends in a **rolling 90-day window** (compute from today's date; prefer in-window sources, flag
   older), every finding cited + dated.
@@ -149,15 +176,19 @@ unverified claim or an infeasible upgrade into the plan** — that is the whole 
 recommendation), then **ASCII architecture diagrams** (envctl `DIAGRAMS.md` conventions — box-drawing,
 `Source: file:section`, the `[A]/[A*]/[P]/[H]/[!!]` legend), the **sequenced upgrade roadmap** (each
 item tagged quality/speed/accuracy, ordered by value/risk using graph centrality + blast-radius), a
-**governance/settings/config findings**, dedicated **tool-evaluation** section (tools/CLIs/MCPs/crates the target uses, their 90-day currency /
-advisories from the researcher, recommend upgrade/hold), named **gaps**, and a stated **confidence**.
+**governance/settings/config findings**, dedicated sections for **filesystem layout**, **dependency
+DAG / TDP**, **prompt architecture**, **memory/vector intelligence**, **auto-research cadence**,
+**rules/policy/org**, **distributed compute**, **risk policy**, **agent backend matrix**, and
+**agent interop**, plus a dedicated **tool-evaluation** section (tools/CLIs/MCPs/crates the target
+uses, their 90-day currency / advisories from the researcher, recommend upgrade/hold), named
+**gaps**, and a stated **confidence**.
 Then promote: append a `docs/ROADMAP.md` row (canonical copy stays under `reports/`); emit a **draft**
 ADR at `.handoff/decisions/ADR-####-<slug>.md` **only** for a genuine architecture decision. Docs
 only — never touch production code. Commit.
 
 ## Output contract
 
-End every cycle with paths to: plan file, ASCII diagrams including the control-plane diagram, graph snapshot + diff, gap→upgrade table across quality/speed/accuracy/governance+settings+config, tool-eval table, governance findings, settings/config hygiene findings (MCP rot / skill overload / token burn / permission/config drift), TDD RED-suite evidence with tests-ran count and traceability matrix, evolution scorecard/LESSONS/proposed-upgrades, and the resume pointer.
+End every cycle with paths to: plan file, ASCII diagrams including the control-plane diagram, graph snapshot + diff, target-DAG graph (`graph/target-dag.{json,md}`), gap→upgrade table across quality/speed/accuracy/governance+settings+config, tool-eval table, governance findings, settings/config hygiene findings (MCP rot / skill overload / token burn / permission/config drift), filesystem layout findings, prompt-architecture findings, memory/vector findings, auto-research findings, rules/policy/org findings, distributed-compute findings, risk-policy findings, agent backend/interoperability findings, TDD RED-suite evidence with tests-ran count and traceability matrix, weave dispatch ledger (when used), artifact-gate result, evolution scorecard/LESSONS/proposed-upgrades, and the resume pointer.
 
 ## Phase 5: SELF-EVAL (every cycle) — `evolution-steward`, lightweight
 
@@ -176,8 +207,11 @@ Write `.handoff/loop/plan/DONE` only when: every target in `targets.md` is `- [x
 explicit `- [!]`, AND every dimension of the target is `- [x]` (verified) or `- [!]`; AND the
 `plan-cartographer`'s **completeness sweep** re-derives the target's expected surface from the graph
 (modules / entry points / public-API) and finds nothing major unexamined; AND the plan answers from
-CONFIRMED evidence with a stated confidence + named gaps. A partial/zero re-derivation →
-**INCONCLUSIVE → write `.handoff/loop/plan/NEEDS-HUMAN`**, not DONE. Record the sweep result inside DONE.
+CONFIRMED evidence with a stated confidence + named gaps; AND `scripts/plan-artifact-gate.sh
+.handoff/loop/plan` PASSes. A partial/zero re-derivation, missing runtime artifacts, terminal
+`loop_state.md` with zero target rows, or root `DONE`/`status: COMPLETE` while any target remains
+`- [ ]`/`- [~]` is a hard failure: **INCONCLUSIVE → write `.handoff/loop/plan/NEEDS-HUMAN`**, not
+DONE. Record the sweep result and artifact-gate evidence inside DONE.
 
 ## Continuity & error handling
 
@@ -192,9 +226,12 @@ CONFIRMED evidence with a stated confidence + named gaps. A partial/zero re-deri
 
 ## Eject
 
-`bash scripts/eject.sh <target-repo>` copies the harness (5 plan skills + shared skills + 5 plan
-agents + shared agents) into the target's `.claude/` and scaffolds `.handoff/loop/plan/`. See
-`references/state-contract.md`. Invoke as `/planning-engineer` (loop via `/plan-loop`).
+`bash scripts/eject.sh <target-repo>` copies the harness (planning-engineer + plan-loop + the
+extended planning axes + shared skills, and the full specialist/auditor agent set) into the target's
+`.claude/` and scaffolds `.handoff/loop/plan/`. See `references/state-contract.md`. The package
+self-tests include `test-plan-{eject,loop-state,contract,weave-dispatch,artifact-gate,evals}.sh`;
+run them before treating an ejection as synced. Invoke as `/planning-engineer` (loop via
+`/plan-loop`).
 
 ## Test Scenarios
 
