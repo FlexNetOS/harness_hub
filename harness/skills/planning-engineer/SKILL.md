@@ -65,6 +65,34 @@ fail-closed finding, never a recommendation:
   enforce currency against this rule.
 - **Evidence over vibes.** Diagrams and gaps derive from the code graph and cited sources, not memory.
 
+## Owner north-star architecture-loop axes
+
+This harness is the packaged architecture loop for a Rust/Lua distributed agent fabric, not just a
+single-repo planner. Every target plan must explicitly consider these owner north-star axes when they
+are in scope, and must record a no-op rationale when they are intentionally out of scope:
+
+1. **Persistent memory + vector intelligence** — ICM recall/store, `.handoff` ledger, source ledgers,
+   GitKB code graph, vector/RAG indexes when present, freshness, and cold-start recall proof.
+2. **Constant auto-research** — deliberately refresh code graph intelligence and current web/vendor/tool
+   docs every cycle; stale evidence invalidates recommendations.
+3. **Rules, policy, and agent org chart** — Upgrade Only, No Downgrades, automation-first routing,
+   explicit SUPERVISED/owner-only boundaries, real agent org chart, and agent-to-agent communication via
+   weave/A2A/MCP surfaces.
+4. **Always background agents for heavy work** — heavy research/code mapping/policy scans run in
+   background lanes so the foreground chat remains responsive and weave messages are not missed.
+5. **Rust + Lua north star** — Rust owns safe control/data planes and embedded/no_std paths; Lua/Luau is
+   evaluated as a small script/policy/runtime layer only when it improves deployability without weakening
+   trust-boundary invariants.
+6. **Distributed compute across owner hardware** — workstation/GPU, local servers, mobile, wearables,
+   Raspberry Pi/Pi Zero class Linux, ESP32/ESP32-S3 class MCU, and offline/degraded operation.
+7. **Multi-vendor local+cloud mesh** — local models plus multiple vendors/clouds working together
+   (OpenAI, Anthropic/Claude via weave where used, Cloudflare, Hugging Face, GitHub/Copilot cloud agent,
+   and project-local providers), with failover and data-residency policy.
+
+Required finding artifacts for the standing architecture axes are
+`findings/memory-vector-intelligence-<T>.md`, `findings/autoresearch-<T>.md`,
+`findings/rules-policy-org-<T>.md`, and `findings/distributed-compute-<T>.md`.
+
 ## Execution mode — Hybrid (background fan-out sub-agents + file-based), and why
 
 Single-orchestrator with specialist sub-agents over a durable ledger — **not** a live `TeamCreate`

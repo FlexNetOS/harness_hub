@@ -226,6 +226,20 @@ grep -q 'terminal plan state'   "$ARTIFACT_GATE"  || fail "artifact gate must re
 for t in test-plan-artifact-gate.sh test-plan-evals.sh test-plan-weave-dispatch.sh; do
   [ -f "$PE_SCRIPT_DIR/tests/$t" ] || fail "new planning regression test missing: $t"
 done
+# Owner north-star axes and concurrent peer-artifact semantics must remain first-class in the package.
+grep -q 'Owner north-star architecture-loop axes' "$PE_SKILL" || fail "planning-engineer must carry the owner north-star architecture-loop axes"
+for axis in 'Persistent memory + vector intelligence' 'Constant auto-research' 'Rules, policy, and agent org chart' 'Distributed compute across owner hardware'; do
+  grep -q "$axis" "$PE_SKILL" || fail "planning-engineer north-star axis missing: $axis"
+done
+for agent in plan-analyst plan-governance-config-auditor plan-memory-vector-intelligence-auditor \
+             plan-prompt-architecture-auditor plan-autoresearch-loop-auditor plan-distributed-compute-auditor \
+             plan-dependency-graph-auditor plan-filesystem-layout-auditor plan-rules-policy-org-auditor; do
+  file="$HARNESS_ROOT/agents/$agent.md"
+  [ -f "$file" ] || fail "P9 agent file missing: $file"
+  grep -q 'Concurrent peer-artifact rule (P9)' "$file" || fail "$agent missing P9 concurrent peer-artifact rule"
+  grep -q 'PENDING' "$file" || fail "$agent P9 rule must classify producer-in-flight artifacts as PENDING"
+done
+
 echo "PASS: source-of-truth + weave transport + terminal artifact-gate contract locked"
 
 echo "PASS: plan contract locked — targets rows, graph artifact names, JSON validity, and the documented examples all conform ($jq_note)"
