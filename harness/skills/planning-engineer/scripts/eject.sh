@@ -15,10 +15,8 @@ TARGET="$(cd "$TARGET" && pwd)"
 PLUGIN="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"  # harness/
 
 # OWN: the harness's own skills + its specific reuse (code-research-verify) → always refresh.
-OWN_SKILLS=(planning-engineer plan-loop plan-cartography plan-trend-research plan-governance-config plan-test-strategy plan-synthesis code-research-verify \
-  plan-filesystem-layout plan-dependency-graph plan-prompt-architecture plan-memory-vector-intelligence plan-autoresearch-loop plan-rules-policy-org plan-distributed-compute)
-OWN_AGENTS=(plan-cartographer plan-trend-researcher plan-governance-config-auditor plan-analyst plan-test-strategist plan-verifier plan-architect \
-  plan-filesystem-layout-auditor plan-dependency-graph-auditor plan-prompt-architecture-auditor plan-memory-vector-intelligence-auditor plan-autoresearch-loop-auditor plan-rules-policy-org-auditor plan-distributed-compute-auditor)
+OWN_SKILLS=(planning-engineer plan-loop plan-cartography plan-memory-vector-intelligence plan-autoresearch-loop plan-rules-policy-org plan-distributed-compute plan-dependency-graph plan-trend-research plan-governance-config plan-filesystem-layout plan-prompt-architecture plan-test-strategy plan-synthesis code-research-verify)
+OWN_AGENTS=(plan-cartographer plan-memory-vector-intelligence-auditor plan-autoresearch-loop-auditor plan-rules-policy-org-auditor plan-distributed-compute-auditor plan-dependency-graph-auditor plan-trend-researcher plan-governance-config-auditor plan-filesystem-layout-auditor plan-prompt-architecture-auditor plan-analyst plan-test-strategist plan-verifier plan-architect)
 # SHARED: copy only if the target lacks them (don't downgrade a hand-authored canonical version).
 SHARED_SKILLS=(session-relay-wrap-up session-relay-resume harness-loop-init harness-evolution icm-memory)
 SHARED_AGENTS=(continuity-steward evolution-steward)
@@ -72,15 +70,16 @@ resume the planning loop", use the `plan-loop` (continuous) / `planning-engineer
 Read-only on production code; writes plans/graph under .handoff/loop/plan/ + docs.
 
 # Harness self-tests (optional CI gate): the package ships hermetic, network-free tests at
-#   .claude/skills/planning-engineer/scripts/tests/test-plan-{eject,loop-state,contract}.sh
+#   .claude/skills/planning-engineer/scripts/tests/test-plan-{eject,loop-state,contract,weave-dispatch,artifact-gate,evals}.sh
 # They resolve their scripts-under-test from the repo root; wire them into CI (run each with `bash`).
 # The loop-state test needs ci/gates/loop-state.sh present (copy it if your repo runs the plan loop).
 #
 # Runtime gate/dispatch helpers (copy to the target's repo-root scripts/ if your repo runs the loop):
-#   cp .claude/skills/planning-engineer/scripts/plan-artifact-gate.sh   scripts/plan-artifact-gate.sh
-#   cp .claude/skills/planning-engineer/scripts/plan-weave-dispatch.sh  scripts/plan-weave-dispatch.sh
-# plan-artifact-gate.sh fails closed on incomplete per-cycle artifacts / DONE drift; plan-weave-dispatch.sh
-# fans the background Opus lanes out through weave (override PLAN_WEAVE_ORCH / the lane list per repo).
+#   install -m755 .claude/skills/planning-engineer/scripts/plan-artifact-gate.sh  scripts/plan-artifact-gate.sh
+#   install -m755 .claude/skills/planning-engineer/scripts/plan-weave-dispatch.sh scripts/plan-weave-dispatch.sh
+# plan-artifact-gate.sh fails closed on incomplete per-cycle artifacts, terminal zero-target roll-ups,
+# and DONE/COMPLETE drift; plan-weave-dispatch.sh fans the required Opus lanes out through weave
+# (override PLAN_WEAVE_ORCH / the lane list per repo).
 
 Done. Invoke as: /planning-engineer  (single cycle)  ·  /plan-loop  (continuous)
 SNIP

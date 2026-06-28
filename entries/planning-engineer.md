@@ -44,15 +44,23 @@ subsystem-by-subsystem until done.
   `plan-prompt-architecture-auditor` / `plan-memory-vector-intelligence-auditor` / `plan-autoresearch-loop-auditor` /
   `plan-rules-policy-org-auditor` / `plan-distributed-compute-auditor` +
   `continuity-steward`, `evolution-steward` (shared).
+- **Source-of-truth + transport:** `harness_hub` is the reusable source; target repos carry ejected
+  mirrors that must be re-synced from this package. PromptHub owner intent is preserved: run from the
+  harness/control repo, keep the foreground Codex/Claude chat interactive, write only planning artifacts
+  into targets, and dispatch required Claude Opus background lanes through weave (`code-graph`,
+  `web-trends`, `governance`, `settings-config`, `rusty-idd-north-star`) instead of downgrading.
 - **Testing pillar:** an always-on `test-coverage` dimension (`plan-test-strategist` maps existing tests
   by call-graph reachability, finds coverage gaps, and authors and RED-runs additive suites) → a *Test Strategy & Coverage*
   plan section + a **Feature-Forge test-build handoff** (the loop plans tests; Feature Forge builds +
   runs them — read-only is preserved). The harness also ships hermetic self-tests
-  (`scripts/tests/test-plan-{eject,loop-state,contract}.sh`), wired into envctl CI.
+  (`scripts/tests/test-plan-{eject,loop-state,contract,weave-dispatch,artifact-gate,evals}.sh`), wired into envctl CI.
+  The artifact gate rejects terminal zero-target roll-ups and DONE/COMPLETE states with nonterminal targets.
 - **Execution mode:** hybrid — single-orchestrator, background-parallel fan-out (map+research,
   analyze, verify), sequential synthesize + self-eval; durable ledger under `.handoff/loop/plan/`
-  (resumable). **Read-only** on the target's production code; permitted writes are plans/graph, docs, and additive RED tests only. All
-  agents `model: opus`.
+  (resumable), including `target_dag`, `artifact_gate`, source/run ledgers, risk policy, backend matrix,
+  interop, prompt-architecture, memory/vector, auto-research, rules/policy/org, distributed-compute, and
+  `weave_dispatch` state. **Read-only** on the target's production code; permitted writes are plans/graph, docs, and additive RED tests only. All
+  agents preserve the Opus route, using weave when direct foreground dispatch cannot pin it.
 
 ## Run / eject
 

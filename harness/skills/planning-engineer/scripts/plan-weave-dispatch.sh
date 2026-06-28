@@ -85,7 +85,7 @@ LANES=(
   web-trends
   governance
   settings-config
-  target-north-star
+  rusty-idd-north-star
 )
 
 prompt_for_lane() {
