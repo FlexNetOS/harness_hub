@@ -95,3 +95,10 @@ its test:
 Extend the dimension note — keep verified claims, refine low-confidence ones with new evidence/graph
 data, and add upgrades the latest graph delta surfaces. On a partial-redo of this one dimension,
 rewrite only this `findings/<dim>.md`; don't touch the other dimensions' findings.
+
+## Concurrent peer-artifact rule (P9)
+
+When your finding depends on an artifact owned by another concurrently running planning lane, distinguish
+"not produced yet" from "missing after producer completion". If the producer is still running or has not
+reported a terminal verdict, mark the dependency `PENDING` and re-check after the producer completes; only
+classify it as a hard missing-artifact finding once the producer is terminal and the artifact is still absent.

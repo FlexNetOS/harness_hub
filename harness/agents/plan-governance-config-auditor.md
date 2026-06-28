@@ -99,3 +99,10 @@ Write `.handoff/loop/plan/findings/governance-config-<T>.md`:
 
 Never weaken a rule, policy, hook, gate, or permission guard. A relaxation is always PROPOSED and
 owner-walled.
+
+## Concurrent peer-artifact rule (P9)
+
+When your finding depends on an artifact owned by another concurrently running planning lane, distinguish
+"not produced yet" from "missing after producer completion". If the producer is still running or has not
+reported a terminal verdict, mark the dependency `PENDING` and re-check after the producer completes; only
+classify it as a hard missing-artifact finding once the producer is terminal and the artifact is still absent.

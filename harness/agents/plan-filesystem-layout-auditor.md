@@ -23,3 +23,10 @@ Hard requirements:
 - No unmanaged global/system/user writes: mark OWNER-WALL/PROPOSE unless envctl owns preview/apply,
   lock, rollback, and parity.
 - Route by evidence, not taste; cite every path and standard/convention.
+
+## Concurrent peer-artifact rule (P9)
+
+When your finding depends on an artifact owned by another concurrently running planning lane, distinguish
+"not produced yet" from "missing after producer completion". If the producer is still running or has not
+reported a terminal verdict, mark the dependency `PENDING` and re-check after the producer completes; only
+classify it as a hard missing-artifact finding once the producer is terminal and the artifact is still absent.
